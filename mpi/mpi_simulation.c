@@ -37,12 +37,15 @@
 
 #include "ReG_Steer_Appside.h"
 
+#include "mpi_simulation.h"
+
 /* global variables */
 int verbose = 1;
 int num_procs;
 int rank;
 
 /* function prototypes */
+void create_mpi_datatype(MPI_Datatype*);
 void output(int, const char*, ...);
 void usage(const char*);
 
@@ -50,7 +53,6 @@ int main(int argc, char** argv) {
 
   /* maximum number of 'simulation' loops to do */
   const int nloops = 5000;
-  int sleep_time = 1;
   int finished = 0;
 
 
@@ -58,22 +60,17 @@ int main(int argc, char** argv) {
    * Steering variables to be added here
    */
 
-  int reg_status;
   int reg_num_cmds;
   int reg_cmds[REG_INITIAL_NUM_CMDS];
 
-  int reg_num_changed_params;
+  steer_params reg;
+
   char** reg_changed_param_labels;
-  int reg_num_rcvd_cmds;
-  int  reg_rcvd_cmds[REG_MAX_NUM_STR_CMDS];
   char** reg_rcvd_cmd_params;
 
   /*
    * End of steering variables
    */
-
-  /* Example parameters */
-
   
   /* Initialise MPI */
   int mpi_status;
@@ -97,6 +94,14 @@ int main(int argc, char** argv) {
     }
   }
 
+  /* initialize parameters and datatype */
+  reg.sleep_time = 1;
+  reg.temperature = 0.0f;
+  reg.temp_increment = 0.1234f;
+
+  MPI_Datatype mpi_steer_params;
+  create_mpi_datatype(&mpi_steer_params);
+
   /*
    * Initialise and enable steering library here
    */
@@ -107,7 +112,7 @@ int main(int argc, char** argv) {
     reg_num_cmds = 2;
     reg_cmds[0] = REG_STR_STOP;
     reg_cmds[1] = REG_STR_PAUSE_INTERNAL;
-    reg_status = Steering_initialize("MPI Simulation", reg_num_cmds, reg_cmds);
+    reg.status = Steering_initialize("MPI Simulation", reg_num_cmds, reg_cmds);
 
     /* Use library utility routines to allocate arrays of strings
        for passing in to Steering_control */
@@ -118,21 +123,51 @@ int main(int argc, char** argv) {
     
     if(!reg_changed_param_labels || !reg_rcvd_cmd_params) {
       output(0, "Failed to allocate string arrays.\n");
-      reg_status = REG_FAILURE;
+      reg.status = REG_FAILURE;
     }
   }
   
   /* broadcast/collect status */
-  MPI_Bcast(&reg_status, 1, MPI_INTEGER, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&reg.status, 1, MPI_INTEGER, 0, MPI_COMM_WORLD);
 
   /* if error, quit nicely */
-  if(reg_status == REG_FAILURE) {
+  if(reg.status == REG_FAILURE) {
     MPI_Finalize();
     return REG_FAILURE;
   }
 
   /*
    * End of steering library initialisation
+   */
+
+  /*
+   * Register parameters for steering here
+   */
+
+  if(rank == 0) {
+    /* monitored parameters */
+    reg.status = Register_param("Temperature", REG_FALSE,
+				(void*)(&reg.temperature), REG_FLOAT, "", "");
+
+    /* steered parameters */
+    reg.status = Register_param("Sleep time", REG_TRUE,
+				(void*)(&reg.sleep_time), REG_INT, "1", "5");
+    reg.status = Register_param("Temperature increment", REG_TRUE,
+				(void*)(&reg.temp_increment), REG_FLOAT,
+				"", "");
+  }
+
+  /* broadcast/collect status */
+  MPI_Bcast(&reg.status, 1, MPI_INTEGER, 0, MPI_COMM_WORLD);
+
+  /* if error, quit nicely */
+  if(reg.status == REG_FAILURE) {
+    MPI_Finalize();
+    return REG_FAILURE;
+  }
+
+  /*
+   * End of parameter registration
    */
 
   /*
@@ -145,28 +180,54 @@ int main(int argc, char** argv) {
     mpi_status = MPI_Barrier(MPI_COMM_WORLD);
 
     /* pretend to do some work */
-    sleep(sleep_time);
+    sleep(reg.sleep_time);
     output(0, "This is loop %d\n", i);
+    output(0, "temperature = %f\n", reg.temperature);
+
+    reg.temperature += reg.temp_increment;
+
 
     /*
      * Do some Steering stuff here
      */
 
     if(rank == 0) {
-      reg_status = Steering_control(i,
-				    &reg_num_changed_params,
+      reg.status = Steering_control(i,
+				    &reg.num_params_changed,
 				    reg_changed_param_labels,
-				    &reg_num_rcvd_cmds,
-				    reg_rcvd_cmds,
+				    &reg.num_rcvd_cmds,
+				    reg.rcvd_cmds,
 				    reg_rcvd_cmd_params);
     }
 
-    /* broadcast/collect status */
-    MPI_Bcast(&reg_status, 1, MPI_INTEGER, 0, MPI_COMM_WORLD);
+    /* broadcast/collect everything */
+    MPI_Bcast(&reg, 1, mpi_steer_params, 0, MPI_COMM_WORLD);
 
-    if(reg_status != REG_SUCCESS) {
-      output(1, "I am %d and I detected that Steering_control failed.\n", rank);
+    if(reg.status != REG_SUCCESS) {
+      output(1, "I detected that Steering_control failed.\n");
       continue;
+    }
+
+    /* process commands received */
+    for(int i = 0; i < reg.num_rcvd_cmds; i++) {
+      switch(reg.rcvd_cmds[i]) {
+      case REG_STR_STOP:
+	output(1, "I've been told to stop.\n");
+	finished = 1;
+	break;
+      }
+    }
+
+    /* process parameters changed */
+    /* not much to do here in this simple example as the changed
+     * params were already broadcast. If the changes affect anything
+     * then here is where you would put that code. In this case
+     * just print out the new values of the steerable parameters.
+     */
+    if(reg.num_params_changed > 0) {
+      output(1, "%d param(s) changed.\n", reg.num_params_changed);
+      output(1, "sleep_time: %d\n", reg.sleep_time);
+      output(1, "temp_increment: %f\n", reg.temp_increment);
     }
 
     /*
@@ -174,7 +235,6 @@ int main(int argc, char** argv) {
      */
 
     if(finished) break;
-
   }
 
   /* 
@@ -185,7 +245,9 @@ int main(int argc, char** argv) {
    * Finalize steering library
    */
 
-  Steering_finalize();
+  if(rank == 0) {
+    Steering_finalize();
+  }
 
   /*
    * End of steering finalization
@@ -196,6 +258,28 @@ int main(int argc, char** argv) {
 
 }
 
+void create_mpi_datatype(MPI_Datatype* datatype) {
+  int count = PARAMS_COUNT;
+  int blocklengths[PARAMS_COUNT] = {1, 1, REG_MAX_NUM_STR_CMDS, 1, 1, 1, 1, 1};
+  MPI_Datatype types[PARAMS_COUNT] = {MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_REAL, MPI_INTEGER, MPI_REAL, MPI_UB};
+  MPI_Aint displacements[PARAMS_COUNT];
+
+  displacements[0] = 0;
+  for(int i = 1; i < count; i++) {
+    switch(types[i - 1]) {
+    case MPI_INTEGER:
+      displacements[i] = displacements[i - 1] + (sizeof(int) * blocklengths[i - 1]);
+      break;
+    case MPI_REAL:
+      displacements[i] = displacements[i - 1] + (sizeof(float) * blocklengths[i - 1]);
+      break;
+    }
+  }
+  
+  MPI_Type_struct(count, blocklengths, displacements, types, datatype);
+  MPI_Type_commit(datatype);
+}
+
 void output(int proc, const char* format, ...) {
   va_list arg_list;
 
@@ -204,11 +288,13 @@ void output(int proc, const char* format, ...) {
 
     if(proc == 0) {
       if(rank == 0) {
+	fprintf(stdout, "proc %d: ", rank);
 	vfprintf(stdout, format, arg_list);
 	fflush(stdout);
       }
     }
     else {
+      fprintf(stdout, "proc %d: ", rank);
       vfprintf(stdout, format, arg_list);
       fflush(stdout);      
     }
