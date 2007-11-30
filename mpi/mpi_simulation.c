@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
 
   if(rank == 0) {
     /* monitored parameters */
-    reg.status = Register_param("Temperature", REG_FALSE,
+    reg.status = Register_param("Temperature (C)", REG_FALSE,
 				(void*)(&reg.temperature), REG_FLOAT, "", "");
 
     /* steered parameters */
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
 				(void*)(&reg.sleep_time), REG_INT, "1", "5");
     reg.status = Register_param("Temperature increment", REG_TRUE,
 				(void*)(&reg.temp_increment), REG_FLOAT,
-				"", "");
+				"-1.0", "1.0");
   }
 
   /* broadcast/collect status */
@@ -185,7 +185,9 @@ int main(int argc, char** argv) {
     output(0, "temperature = %f\n", reg.temperature);
 
     reg.temperature += reg.temp_increment;
-
+    if(reg.temperature < -273.0f) {
+      reg.temperature = -273.0f;
+    }
 
     /*
      * Do some Steering stuff here
