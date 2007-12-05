@@ -73,8 +73,6 @@ int main(int argc, char** argv) {
    */
   
   /* Initialise MPI */
-  int mpi_status;
-
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -177,7 +175,7 @@ int main(int argc, char** argv) {
   for(int i = 0; i < nloops; i++) {
 
     /* make sure all procs are at the same place */
-    mpi_status = MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /* pretend to do some work */
     sleep(reg.sleep_time);
@@ -261,6 +259,7 @@ int main(int argc, char** argv) {
 }
 
 void create_mpi_datatype(MPI_Datatype* datatype) {
+  int type_size;
   int count = PARAMS_COUNT;
   int blocklengths[PARAMS_COUNT] = {1, 1, REG_MAX_NUM_STR_CMDS, 1, 1, 1, 1, 1};
   MPI_Datatype types[PARAMS_COUNT] = {MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_REAL, MPI_INTEGER, MPI_REAL, MPI_UB};
@@ -268,14 +267,8 @@ void create_mpi_datatype(MPI_Datatype* datatype) {
 
   displacements[0] = 0;
   for(int i = 1; i < count; i++) {
-    switch(types[i - 1]) {
-    case MPI_INTEGER:
-      displacements[i] = displacements[i - 1] + (sizeof(int) * blocklengths[i - 1]);
-      break;
-    case MPI_REAL:
-      displacements[i] = displacements[i - 1] + (sizeof(float) * blocklengths[i - 1]);
-      break;
-    }
+    MPI_Type_size(types[i - 1], &type_size);
+    displacements[i] = displacements[i - 1] + (type_size * blocklengths[i - 1]); 
   }
   
   MPI_Type_struct(count, blocklengths, displacements, types, datatype);
