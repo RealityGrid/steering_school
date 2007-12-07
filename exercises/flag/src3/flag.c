@@ -239,11 +239,11 @@ main()
 
   // Register the input and output IO channels 
 
-  if( Register_IOType("OUTPUT_COORD_DATA", 
+  if( Register_IOType("OUTPUT", 
 		      REG_IO_OUT, 
 		      1, // Attempt to output every timestep. 
 		      &(iotype_handle[0])) != REG_SUCCESS){
-    printf("Failed to register IO type OUTPUT_COORD_DATA\n");
+    printf("Failed to register IO type OUTPUT\n");
     Steering_finalize();
     return REG_FAILURE;
   }
@@ -255,7 +255,7 @@ main()
     Steering_finalize();
     return REG_FAILURE;
     }*/
-  num_iotypes = 2;
+  num_iotypes = 1;
 
 
 
@@ -324,7 +324,7 @@ main()
 	{
 	  if(num_recvd_cmds > 0)
 	    {
-	      printf("Received %d steerer cmds\n", num_recvd_cmds);
+	      //printf("Received %d steerer cmds\n", num_recvd_cmds);
 	      for(icmd=0; icmd<num_recvd_cmds; icmd++)
 		{
 		  switch (recvd_cmds[icmd])
@@ -361,16 +361,15 @@ main()
 			  printf("Some IO command received\n");
 
 			    // We've been told to emit some data 
-			    if( Emit_start(iotype_handle[j], main_loop_count, &iohandle)
-				== REG_SUCCESS )
+			    if(Emit_start(iotype_handle[j], main_loop_count, &iohandle)== REG_SUCCESS )
 			      {
 				data_type=REG_FLOAT;
 				data_count=1;
 			      
-				if(j==0)
-				  {
-				    status = Emit_data_slice(iohandle, data_type, data_count,(void *)flag_info.Vertices);
-				  }
+				//	if(j==0)
+				//  {
+				    status = Emit_data_slice(iohandle, data_type, data_count,flag_info.Vertices);
+				    //  }
 				/*
 				if(j==1)
 				  {
