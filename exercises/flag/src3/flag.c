@@ -65,8 +65,7 @@
 ***  Main ****
 **************/
 
-main()
-{
+main() {
 
   // No. of 'simulation' loops to do 
   const int nloops = 15000;
@@ -94,9 +93,8 @@ main()
   int    chktype_handle[REG_INITIAL_NUM_IOTYPES];
   char   chk_tag[REG_MAX_STRING_LENGTH];
   REG_IOHandleType iohandle;
-  int    data_type;
   int    data_count;
-
+  int    dims[2];
 
 
   // normal flag variables
@@ -241,16 +239,16 @@ main()
 
   if( Register_IOType("OUTPUT", 
 		      REG_IO_OUT, 
-		      1, // Attempt to output every timestep. 
+		      10, // Attempt to output every timestep. 
 		      &(iotype_handle[0])) != REG_SUCCESS){
     printf("Failed to register IO type OUTPUT\n");
     Steering_finalize();
     return REG_FAILURE;
   }
   /*if( Register_IOType("OUTPUT_NODEDATA",
-		      REG_IO_OUT, 
-		      1, // Attempt to do output every timestep. 
-		      &(iotype_handle[1])) != REG_SUCCESS){
+    REG_IO_OUT, 
+    1, // Attempt to do output every timestep. 
+    &(iotype_handle[1])) != REG_SUCCESS){
     printf("Failed to register IO type OUTPUT_NODEDATA\n");
     Steering_finalize();
     return REG_FAILURE;
@@ -275,14 +273,9 @@ main()
   calc_wind(&flag_info, &steer);
   createflag(&flag_info, &steer);
 
-
-
-
-
-
-
-
-  for (main_loop_count=0;  main_loop_count < nloops;  main_loop_count++) 
+  main_loop_count=0;
+  //for (main_loop_count=0;  main_loop_count < nloops;  main_loop_count++) 
+  while(!finished)
     { 
       if(main_loop_count%10==0)
 	{ 
@@ -292,7 +285,7 @@ main()
 
       // If you want to slow down the loop
       // pretend to do some work.
-      sleep(sleep_time); 
+      usleep(10000); 
 
       flag_info.strength = steer.flag_strength;
 
@@ -313,96 +306,80 @@ main()
 
 
       // Talk to the steering client (if one is connected)
-      status = Steering_control(i,
+      status = Steering_control(main_loop_count,
 				&num_params_changed,
 				changed_param_labels,
 				&num_recvd_cmds,
 				recvd_cmds,
 				recvd_cmd_params);
 
-      if(status == REG_SUCCESS)
-	{
-	  if(num_recvd_cmds > 0)
-	    {
-	      //printf("Received %d steerer cmds\n", num_recvd_cmds);
-	      for(icmd=0; icmd<num_recvd_cmds; icmd++)
-		{
-		  switch (recvd_cmds[icmd])
-		    {
-		    case REG_STR_PAUSE:
-		      if(Steering_pause(&num_params_changed,
-					changed_param_labels,
-					&num_recvd_cmds,
-					recvd_cmds,
-					recvd_cmd_params) != REG_SUCCESS)
-			{
+      if(status == REG_SUCCESS) {
+	if(num_recvd_cmds > 0) {
+	  //printf("Received %d steerer cmds\n", num_recvd_cmds);
+	  for(icmd=0; icmd<num_recvd_cmds; icmd++) {
+	    switch (recvd_cmds[icmd]) {
+	    case REG_STR_PAUSE:
+	      if(Steering_pause(&num_params_changed,
+				changed_param_labels,
+				&num_recvd_cmds,
+				recvd_cmds,
+				recvd_cmd_params) != REG_SUCCESS) {
+		printf("Steering_pause returned error\n");
+	      }
 
-			  printf("Steering_pause returned error\n");
-			}
-
-		      // Reset loop to parse commands received 
-		      // following the resume/stop command that 
-		      // broke us out of pause 
-				
-		      icmd = -1;
-		      break;
+	      // Reset loop to parse commands received 
+	      // following the resume/stop command that 
+	      // broke us out of pause 
+	      icmd = -1;
+	      break;
 			      
-		    case REG_STR_STOP:
-		      finished = REG_TRUE;
-		      break;
+	    case REG_STR_STOP:
+	      finished = REG_TRUE;
+	      break;
 
+	      // Deal with user-defined IO types etc. 
+	    default:
+	      for(j=0; j<num_iotypes; j++){
+		
+		if(recvd_cmds[icmd] == iotype_handle[j]){
+		  //printf("Some IO command received\n");
 
-		      // Deal with user-defined IO types etc. 
+		  // We've been told to emit some data 
+		  status = Emit_start(iotype_handle[j], main_loop_count, &iohandle);
+		  if(status != REG_SUCCESS) {
+		    printf("Call to Emit_data_slice failed\n");
+		    Emit_stop(&iohandle);
+		    continue;
+		  }
+		  
+		  dims[0] = flag_info.sizex;
+		  dims[1] = flag_info.sizey;
+		  data_count=2;
+		  status = Emit_data_slice(iohandle,
+					   REG_INT,
+					   data_count,
+					   dims);
 
-		      for(j=0; j<num_iotypes; j++){
-
-			if(recvd_cmds[icmd] == iotype_handle[j]){
-
-			  printf("Some IO command received\n");
-
-			    // We've been told to emit some data 
-			    if(Emit_start(iotype_handle[j], main_loop_count, &iohandle)== REG_SUCCESS )
-			      {
-				data_type=REG_FLOAT;
-				data_count=1;
-			      
-				//	if(j==0)
-				//  {
-				    status = Emit_data_slice(iohandle, data_type, data_count,flag_info.Vertices);
-				    //  }
-				/*
-				if(j==1)
-				  {
-				    status = Emit_data_slice(iohandle, data_type, data_count,(void *)flag_info.NodeData);
-				  }
-				*/
-				if(status != REG_SUCCESS)
-				  {
-				    printf("Call to Emit_data_slice failed\n");
-				    Emit_stop(&iohandle);
-				    continue;
-				  }
-
-			      }
-			  }
-			  break;
-			}
-		    }
+		  data_count=flag_info.sizex * flag_info.sizey * 3;
+		  status = Emit_data_slice(iohandle,
+					   REG_FLOAT,
+					   data_count,
+					   flag_info.Vertices);
+		  
+		  Emit_stop(&iohandle);
 		}
-	      if(finished)
-		{break;}
+	      }
+	      break;
 	    }
-	  if(finished)
-	    {break;}
+	  }
+	  if(finished) break;
 	}
-      else{
+	if(finished) break;
+      }
+      else {
 	printf("Call to steering control failed.\n");
       }
-
-
-
-
-
+  
       if(main_loop_count==0)
 	{
 	  fprintf(f_Vertices,"%d %d\n",SIZEX,SIZEY);
@@ -441,7 +418,7 @@ main()
 	    }
 	}
 		
-
+      main_loop_count++;
     }//end main loop
 
 
