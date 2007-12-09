@@ -33,10 +33,15 @@
 
 #include "vtkActor.h"
 #include "vtkAppendPolyData.h"
+#include "vtkCallbackCommand.h"
 #include "vtkCellArray.h"
+#include "vtkCommand.h"
 #include "vtkCylinderSource.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleSwitch.h"
+#include "vtkMultiThreader.h"
+#include "vtkMutexLock.h"
+#include "vtkObject.h"
 #include "vtkPNGReader.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
@@ -49,12 +54,6 @@
 #include "vtkRenderWindowInteractor.h"
 #include "vtkSphereSource.h"
 #include "vtkTexture.h"
-
-#include "vtkCallbackCommand.h"
-#include "vtkCommand.h"
-#include "vtkMutexLock.h"
-#include "vtkMultiThreader.h"
-#include "vtkObject.h"
 
 #include "ReG_Steer_Appside.h"
 
@@ -81,10 +80,6 @@ void* regLoop(void*);
 int main(int argc, char* argv[]) {
 
   vtkPolyData* flag = vtkPolyData::New();
-
-  //if(argc == 2) {
-  //read_flag_file(argv[1], flag);
-  //}
 
   // load RealityGrid logo
   vtkPNGReader* png = vtkPNGReader::New();
@@ -422,4 +417,6 @@ void* regLoop(void* userData) {
 
   // tell main thread that this one is done
   sem_post(&regDone);
+
+  return NULL;
 }
