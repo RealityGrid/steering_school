@@ -1,6 +1,4 @@
 #---------------------------------------------------------------------
-#  Makefile for mini-application
-#
 #  (C) Copyright 2007, University of Manchester, United Kingdom,
 #  all rights reserved.
 #
@@ -27,18 +25,22 @@
 #  DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
 #  CORRECTION.
 #
-#  Author........: Joanna Leng
+#  Authors.......: Joanna Leng
+#                  Robert Haines
 #---------------------------------------------------------------------
-#
+
+TARGET=flag
 
 CC=gcc
 LIBS=-lm
 
 all:
-	$(CC) flag_utils.c flag.c $(LIBS) -o flag
+	$(CC) flag_utils.c flag.c $(LIBS) -o ${TARGET}
 
 clean:
-	rm *.o *~
+	rm -f ${TARGET}
 
-clean_bin:
-	rm flag
+dist-clean: clean
+	rm -f *~
+	rm -f *.dat
+

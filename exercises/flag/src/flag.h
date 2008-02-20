@@ -1,77 +1,71 @@
-#ifndef FLAG_H
-#define FLAG_H
+/****************************************************************************
+ *  (C) Copyright 2007, University of Manchester, United Kingdom,
+ *  all rights reserved.
+ *
+ *  This software was developed by the RealityGrid project
+ *  (http://www.realitygrid.org), funded by the EPSRC under grants
+ *  GR/R67699/01 and GR/R67699/02.
+ *
+ *  LICENCE TERMS
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *
+ *  THIS MATERIAL IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. THE ENTIRE RISK AS TO THE QUALITY
+ *  AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE
+ *  DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
+ *  CORRECTION.
+ *
+ *  Authors.......: Joanna Leng
+ *                  Robert Haines
+ ****************************************************************************/
 
-//  flag.h
 /***************************************************************************
-Copyright (C) 1992, 1993
-by Kubota Pacific Computer Inc.  All Rights Reserved.
-This program is a trade secret of Kubota Pacific Computer Inc. and
-it is not to be reproduced, published, disclosed to others, copied,
-adapted, distributed, or displayed without the prior authorization
-of Kubota Pacific Computer Inc.  Licensee agrees to attach or embed
-this Notice on all copies of the program, including partial copies
-or modified versions thereof.
-***************************************************************************/
+ * Copyright (C) 1992, 1993
+ * by Kubota Pacific Computer Inc.  All Rights Reserved.
+ * This program is a trade secret of Kubota Pacific Computer Inc. and
+ * it is not to be reproduced, published, disclosed to others, copied,
+ * adapted, distributed, or displayed without the prior authorization
+ * of Kubota Pacific Computer Inc.  Licensee agrees to attach or embed
+ * this Notice on all copies of the program, including partial copies
+ * or modified versions thereof.
+ ****************************************************************************/
 
-// ***************************************************************************
-//  Makefile for mini-application
-//
-//  (C) Copyright 2007, University of Manchester, United Kingdom,
-//  all rights reserved.
-//
-//  This software was developed by the RealityGrid project
-//  (http://www.realitygrid.org), funded by the EPSRC under grants
-//  GR/R67699/01 and GR/R67699/02.
-//
-//  LICENCE TERMS
-//
-//  Redistribution and use in source and binary forms, with or without
-//  modification, are permitted provided that the following conditions
-//  are met:
-//  1. Redistributions of source code must retain the above copyright
-//     notice, this list of conditions and the following disclaimer.
-//  2. Redistributions in binary form must reproduce the above copyright
-//     notice, this list of conditions and the following disclaimer in the
-//     documentation and/or other materials provided with the distribution.
-//
-//  THIS MATERIAL IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//  A PARTICULAR PURPOSE ARE DISCLAIMED. THE ENTIRE RISK AS TO THE QUALITY
-//  AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE
-//  DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
-//  CORRECTION.
-//
-//  Author........: Joanna Leng
-// ***************************************************************************
+#ifndef __FLAG_H__
 
+/***************************
+ ***  Program Constants  ***
+ ***************************/
 
-    /***************************
-    ***  Program Constants  ****
-    ****************************/
-
-// Dimensions of Flag 
+/* Dimensions of Flag */
 #define SIZEX 20
 #define SIZEY 12
 
-// NOTE: statements involving fric have been commented out on the
-// assumption that friction is 1.0. 
-
+/* NOTE: statements involving fric have been commented out on the
+ * assumption that friction is 1.0. 
+ */
 #define FRIC  1.00
-#define G     0.05		// Gravity 
+#define G     0.05 /* Gravity */ 
 
-// Resolution of the square-root lookup table.  
-
+/* Resolution of the square-root lookup table. */
 #define SQRTRES   4096
 #define SQRTSCALE (SQRTRES / 8.0)
 
-// Number of seconds per sim step: 
-
+/* Number of seconds per sim step: */
 #define TIMESTEP  0.1
 
 #define PI 3.14159
 
-// Length of a diagonal is NOT 1.
+/* Length of a diagonal is NOT 1. */
 #define DLEN 1.414214
 
 #define LIGHT_AMB       0
@@ -92,105 +86,93 @@ or modified versions thereof.
 #define COLOR_FORCEMAG  3
 #define COLOR_TEXTURE   4
 
-
-
-
-    /***************************
-    ***  Macro Definitions  ****
-    ****************************/
+/***************************
+ ***  Macro Definitions  ***
+ ***************************/
 
 #define VINDEX(x,y)	(((y) * SIZEX) + (x))
 
 #define CLAMP(x,lo,hi)  (((x) < (lo)) ? (lo) : (((x) > (hi)) ? (hi) : (x)))
 
 
-    /*****************************
-    ***  Typedef Definitions  ****
-    ******************************/
+/*****************************
+ ***  Typedef Definitions  ***
+ *****************************/
 
-typedef struct
-{
-   float  light_intensities[3];
-   int    flag_color;
-   int    flag_motion;
-   int    flag_release[2];
-   float  flag_wind[2];       //min=0.0 and max=1.0 for each component
-   float  flag_backg_rgb[3];
-   int    flag_reptype;
-   int    flag_reset;
+typedef struct {
+  float  light_intensities[3];
+  int    flag_color;
+  int    flag_motion;
+  int    flag_release[2];
+  float  flag_wind[2];       /* min=0.0 and max=1.0 for each component */
+  float  flag_backg_rgb[3];
+  int    flag_reptype;
+  int    flag_reset;
+  int    timer;
+  float  flag_strength;
+} Steer;
 
-   int    timer;
-
-   float  flag_strength;
-}
-Steer;
-
-typedef struct
-{
-   int	sizex;   // flag dimension x
-   int	sizey;   // flag dimension y
-   int len1;     // array length for scalar
-   int len3;     // array length for 3D vectors
-   int xoff;     // array offset for x component
-   int yoff;     // array offset for y component
-   int zoff;     // array offset for z component
+typedef struct {
+  int sizex;    /* flag dimension x */
+  int sizey;    /* flag dimension y */
+  int len1;     /* array length for scalar */
+  int len3;     /* array length for 3D vectors */
+  int xoff;     /* array offset for x component */
+  int yoff;     /* array offset for y component */
+  int zoff;     /* array offset for z component */
 
 
-   // Main Loop Counter for application
-   int traversal_counter;
+  /* Main Loop Counter for application */
+  int traversal_counter;
 
-   // Elastic Strength of each spring
-   double strength;
+  /* Elastic Strength of each spring */
+  double strength;
 
-   // output structures, for graphics, once CFD solution is complete
-   float Tu[SIZEX];  //for texture coords 
-   float Tv[SIZEY];  //for texture coords 
-   float Vertices[SIZEX * SIZEY * 3];
-   float NodeData[SIZEX * SIZEY * 3];
+  /* output structures, for graphics, once CFD solution is complete */
+  float Tu[SIZEX];  /* for texture coords */ 
+  float Tv[SIZEY];  /* for texture coords */ 
+  float Vertices[SIZEX * SIZEY * 3];
+  float NodeData[SIZEX * SIZEY * 3];
 
-	// Point location, velocity, force (= acceleration, as mass is 1.).  
-   double pxyz[SIZEX * SIZEY * 3];  // x, y, z coord of point 
-   double vxyz[SIZEX * SIZEY * 3];  // x, y, z velocity vector 
-   double fxyz[SIZEX * SIZEY * 3];  // x, y, z force vector 
+  /* Point location, velocity, force (= acceleration, as mass is 1.). */
+  double pxyz[SIZEX * SIZEY * 3];  /* x, y, z coord of point */ 
+  double vxyz[SIZEX * SIZEY * 3];  /* x, y, z velocity vector */
+  double fxyz[SIZEX * SIZEY * 3];  /* x, y, z force vector */
 
-   // Temporary variables.  
+  /* Temporary variables. */
+  double dxyz[SIZEX * SIZEY * 3];
+  double txyz[SIZEX * SIZEY * 3];
 
-   double dxyz[SIZEX * SIZEY * 3];
-   double txyz[SIZEX * SIZEY * 3];
+  double ld[SIZEX * SIZEY];    /* Length of 'd' */ 
+  double sf[SIZEX * SIZEY];    /* Spring Force */
 
-   double ld[SIZEX * SIZEY];    // Length of 'd' 
-   double sf[SIZEX * SIZEY];    // Spring Force 
+  double norm[SIZEX * SIZEY * 3];
+  double rel[SIZEX * SIZEY * 3];
+  double a[SIZEX * SIZEY * 3];  
+  double b[SIZEX * SIZEY];
 
-   double norm[SIZEX * SIZEY * 3];
-   double rel[SIZEX * SIZEY * 3];
-   double a[SIZEX * SIZEY * 3];  
-   double b[SIZEX * SIZEY];
+  double windx;
+  double windy;
+  double windz;
 
-   double windx;
-   double windy;
-   double windz;
+  /* The assumption is that the point displacement from spring neutral (a
+   * distance of 1.0) will never exceed 1.0.  Therefore, the sqrt must produce
+   * values from 0.0 to 2.0, leaving an input range from 0 to 4.
+   *
+   * So, sqrt(r) = sqrt_tbl[(int)(r*((SQRTRES-1)/4.))]
+   *             = sqrt_tbl[(int)(r*SQRTSCALE)]
+   *
+   * NOTE: with the addition of diagonal connections, the range should be
+   * increased to accomodate the added length.  
+   *
+   * The divisor here should be greater than the square of the
+   * greatest stretched connection length expected.  
+   */
 
-   // The assumption is that the point displacement from spring neutral (a
-   // distance of 1.0) will never exceed 1.0.  Therefore, the sqrt must produce
-   // values from 0.0 to 2.0, leaving an input range from 0 to 4.
-   //
-   // So, sqrt(r) = sqrt_tbl[(int)(r*((SQRTRES-1)/4.))]
-   //             = sqrt_tbl[(int)(r*SQRTSCALE)]
-   //
-   // NOTE: with the addition of diagonal connections, the range should be
-   // increased to accomodate the added length.  
+  double sqrt_tbl[SQRTRES];
+} FlagInfo;
 
-   // The divisor here should be greater than the square of the
-   // greatest stretched connection length expected.  
-
-   double sqrt_tbl[SQRTRES];
-}
-FlagInfo;
-
-
-
-
-// prototypes 
+/* prototypes */
 
 void vecmulc  (double, double *, int);
 void vecaddc  (double, double *, int);
@@ -227,9 +209,5 @@ void createflag (FlagInfo *f_i, Steer *steer);
 void recreateflag (FlagInfo *f_i, Steer *steer);
 void calc_wind  (FlagInfo *f_i, Steer *steer);
 
-
-
-
-
-#endif
-
+#define __FLAG_H__
+#endif /* __FLAG_H__ */
