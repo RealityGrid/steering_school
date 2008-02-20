@@ -1,0 +1,5 @@
+# ignore emacs generated ~
+*~
+
+# ignore *.dat generated files
+*.dat
