@@ -100,16 +100,10 @@
  *****************************/
 
 typedef struct {
-  float  light_intensities[3];
   int    flag_color;
-  int    flag_motion;
   int    flag_release[2];
   float  flag_wind[2];       /* min=0.0 and max=1.0 for each component */
-  float  flag_backg_rgb[3];
-  int    flag_reptype;
   int    flag_reset;
-  int    timer;
-  float  flag_strength;
 } Steer;
 
 typedef struct {

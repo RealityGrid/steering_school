@@ -647,8 +647,8 @@ void createflag (FlagInfo *f_i, Steer *steer)
     for (ix=0;  ix < SIZEX;  ++ix) {
       printf("flag: VINDEX(ix,iy) = %d %d %d\n",ix, iy,VINDEX(ix,iy));
       printf("flag: f_i->pxyz = %f %f %f\n",f_i->pxyz[index],
-	     f_i->pxyz [index+yoff],
-	     f_i->pxyz [index+zoff]);
+	     f_i->pxyz [index+f_i->yoff],
+	     f_i->pxyz [index+f_i->zoff]);
       ++index;
     }
   }
@@ -810,8 +810,8 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
     for (ix=0;  ix < SIZEX;  ++ix) {
       printf("flag: VINDEX(ix,iy) = %d %d %d\n",ix, iy,VINDEX(ix,iy));
       printf("flag: f_i->pxyz = %f %f %f\n",f_i->pxyz[index],
-	     f_i->pxyz [index+yoff],
-	     f_i->pxyz [index+zoff]);
+	     f_i->pxyz [index+f_i->yoff],
+	     f_i->pxyz [index+f_i->zoff]);
       ++index;
     }
   }

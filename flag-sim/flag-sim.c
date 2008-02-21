@@ -73,10 +73,9 @@
  ****************************************************************************/
 
 #include "flag.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-
 
 /* Search for string 'NOTE' for efficiancy notes 
  *
@@ -85,25 +84,12 @@
  * close to 1.  
  */
 
-/*#define DBG_MESSAGE 1 */
-
-
-
-/*************
- ***  Main ***
- *************/
-
 int main(int argc, char** argv) {
 
-  int count; 
-  int i;
   int n;
   int main_loop_count = 0;
-  int j;
-  FILE* f_Vertices;
-  FILE* f_NodeData;
-  char filename1[1000];
-  char filename2[1000];
+  int main_loop_max = 2000;
+  int output_freq = 100;
 
   FlagInfo flag_info;
   Steer steer;
@@ -136,42 +122,32 @@ int main(int argc, char** argv) {
     flag_info.sf[n] = 0.0;
   }
 
-  /* just used for input trigger */
-  count = 0;
-
   /* initialize values in steer */
-  steer.light_intensities[0] = 0.0;
-  steer.light_intensities[1] = 0.0;
-  steer.light_intensities[2] = 0.0;
-  steer.flag_color = 1;
-  steer.flag_motion = 1;
+  steer.flag_color = COLOR_SOLID;
   steer.flag_release[RELEASE_TOP] = 0;
   steer.flag_release[RELEASE_BOTTOM] = 0;
-  steer.flag_wind[0] = 0.5;
-  steer.flag_wind[1] = (float)0.10;
-  steer.flag_backg_rgb[0] = 0.0;
-  steer.flag_backg_rgb[1] = 0.0;
-  steer.flag_backg_rgb[2] = 0.0;
-  steer.flag_reptype = 0;
+  steer.flag_wind[0] = 0.5f;
+  steer.flag_wind[1] = 0.10f;
   steer.flag_reset = 0;
-  steer.timer = 0;
-  steer.flag_strength = 32.5;
 
-  if((f_Vertices = fopen("Vertices0.dat", "w")) == NULL) {
-    printf("unable to open f_Verices.dat\n");
+  /* get run time and output frequency from command args */
+  if(argc > 3) {
+    fprintf(stderr, "Usage: %s [no. loops] [output freq]\n", argv[0]);
     exit(EXIT_FAILURE);
   }
-
-  if((f_NodeData = fopen("NodeData0.dat", "w")) == NULL) {
-    printf("unable to open f_NodeData.dat\n");
-    exit(EXIT_FAILURE);
+  if(argc > 1) {
+    main_loop_max = atoi(argv[1]);
   }
-
+  if(argc > 2) {
+    output_freq = atoi(argv[2]);
+  }
+  else {
+    output_freq = (int) main_loop_max / 10; 
+  }
 
   /***********************
    * Run CFD Simulation  *
    ***********************/
-  flag_info.strength = steer.flag_strength;
 
   /* initialise the systems */
   init_sqrt(&flag_info);
@@ -179,7 +155,7 @@ int main(int argc, char** argv) {
   calc_wind(&flag_info, &steer);
   createflag(&flag_info, &steer);
 
-  for(main_loop_count = 0; main_loop_count < 150; main_loop_count++) {  
+  for(main_loop_count = 0; main_loop_count <= main_loop_max; main_loop_count++) {  
     if(steer.flag_reset == 1) {
       /* reinitialise the systems */ 
       init_sqrt(&flag_info);
@@ -194,20 +170,25 @@ int main(int argc, char** argv) {
     moveflag(&flag_info);
     recreateflag(&flag_info, &steer);
 
-    if(main_loop_count > 0 && main_loop_count % 10 == 0) {
-      sprintf(filename1, "Vertices%d.dat", main_loop_count);
-      if((f_Vertices = fopen(filename1, "w")) == NULL) {
-	printf("unable to open f_Verices.dat\n");
-	exit(EXIT_FAILURE);
-      }
-      sprintf(filename2, "NodeData%d.dat", main_loop_count);
-      if((f_NodeData = fopen(filename2, "w")) == NULL) {
-	printf("unable to open f_NodeData.dat\n");
-	exit(EXIT_FAILURE);
-      }
-    }
+    if(main_loop_count % output_freq == 0) {
+      int i;
+      int j;
+      FILE* f_Vertices;
+      FILE* f_NodeData;
+      char filename1[1000];
+      char filename2[1000];
 
-    if(main_loop_count % 10 == 0) {
+      sprintf(filename1, "vertices-%d.dat", main_loop_count);
+      if((f_Vertices = fopen(filename1, "w")) == NULL) {
+	printf("unable to open %s\n", filename1);
+	exit(EXIT_FAILURE);
+      }
+      sprintf(filename2, "nodedata-%d.dat", main_loop_count);
+      if((f_NodeData = fopen(filename2, "w")) == NULL) {
+	printf("unable to open %s\n", filename2);
+	exit(EXIT_FAILURE);
+      }
+
       fprintf(f_Vertices, "%d %d\n", SIZEX, SIZEY);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
