@@ -37,6 +37,12 @@ LDFLAGS=${REG_LINK}
 ${TARGET}: flag-sim.c
 	${CC} -o ${TARGET} flag-sim.c flag_utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
 
+no-steering:
+	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING"
+
+debug:
+	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
+
 distclean:	clean
 	rm -f *~
 	rm -f *.dat

@@ -74,6 +74,10 @@
 
 #include "flag.h"
 
+#ifndef NO_STEERING
+#include "ReG_Steer_Appside.h"
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -88,8 +92,17 @@ int main(int argc, char** argv) {
 
   int n;
   int main_loop_count = 0;
+#ifndef NO_STEERING
+  /*
+   * Variables declared in this section are needed for steering
+   *
+   * Add more things here to be used in subsequent libray calls.
+   */
+  int finished = REG_FALSE;
+#else
   int main_loop_max = 2000;
   int output_freq = 100;
+#endif
 
   FlagInfo flag_info;
   Steer steer;
@@ -130,6 +143,13 @@ int main(int argc, char** argv) {
   steer.flag_wind[1] = 0.10f;
   steer.flag_reset = 0;
 
+#ifndef NO_STEERING
+  /*
+   * Setup the steering library here.
+   *
+   * Initialise the library and parameters to steer/monitor.
+   */
+#else
   /* get run time and output frequency from command args */
   if(argc > 3) {
     fprintf(stderr, "Usage: %s [no. loops] [output freq]\n", argv[0]);
@@ -144,6 +164,7 @@ int main(int argc, char** argv) {
   else {
     output_freq = (int) main_loop_max / 10; 
   }
+#endif
 
   /***********************
    * Run CFD Simulation  *
@@ -155,7 +176,10 @@ int main(int argc, char** argv) {
   calc_wind(&flag_info, &steer);
   createflag(&flag_info, &steer);
 
-  for(main_loop_count = 0; main_loop_count <= main_loop_max; main_loop_count++) {  
+#ifndef NO_STEERING
+  /* use a while-loop for indefinite run when steering */
+  while(!finished) {
+
     if(steer.flag_reset == 1) {
       /* reinitialise the systems */ 
       init_sqrt(&flag_info);
@@ -164,12 +188,26 @@ int main(int argc, char** argv) {
       recreateflag(&flag_info, &steer);
       steer.flag_reset = 0;
     }
+#else
+  /* use a for-loop for a bounded run when not steering */
+  for(main_loop_count = 0; main_loop_count <= main_loop_max; main_loop_count++) {  
+#endif
 
     forceflag(&flag_info, &steer);
     externalforces(&flag_info, &steer);
     moveflag(&flag_info);
     recreateflag(&flag_info, &steer);
 
+#ifndef NO_STEERING
+    /*
+     * Talk to the steering library here
+     * and handle the results.
+     *
+     * There is a lot to do here!
+     * (hint: Steering_control)
+     */
+#else
+    /* output data files at output_freq */
     if(main_loop_count % output_freq == 0) {
       int i;
       int j;
@@ -218,7 +256,14 @@ int main(int argc, char** argv) {
 	exit(EXIT_FAILURE);
       }
     }
+#endif /* NO_STEERING */
   }
+
+#ifndef NO_STEERING
+  /*
+   * Finalize steering library here!
+   */
+#endif
 
   return 0;
 }
