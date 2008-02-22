@@ -183,6 +183,13 @@ int main(int argc, char** argv) {
   /* use a while-loop for indefinite run when steering */
   while(!finished) {
 
+    if(main_loop_count % 10 == 0) { 
+      printf("main loop count: %d\n", main_loop_count);
+    }
+
+    /* sleep for a bit as otherwise this runs too quickly! */
+    usleep(10000); 
+
     if(steer.flag_reset == 1) {
       /* reinitialise the systems */ 
       init_sqrt(&flag_info);
@@ -210,6 +217,8 @@ int main(int argc, char** argv) {
      * (hint: Steering_control)
      */
 
+    /* need to increment the loop count manually */
+    main_loop_count++;
 #else
     /* output data files at output_freq */
     if(main_loop_count % output_freq == 0) {
