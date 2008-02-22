@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <math.h>
 
-// vector operations 
+/* vector operations  */
 
 void vecmulc (
 	      double a,
@@ -237,9 +237,9 @@ void vecdiv3 (
   for (qxg=0; qxg<n; qxg++) (o)[qxg]=(v)[qxg]/(u)[qxg];
 }
 
-// *******************************
-// ***  Function Declarations  ***
-// *******************************
+/* ******************************* */
+/* ***  Function Declarations  *** */
+/* ******************************* */
 
 /**************************************************************************/
 
@@ -247,25 +247,25 @@ void forceflag(FlagInfo *f_i, Steer *steer)
 {
   calc_wind(f_i,steer);
 
-  // Start with 0 force.
+  /* Start with 0 force. */
 
   veccopyc(0.,f_i->fxyz,f_i->len3);
 
 
-  // Essentially, we are calculating
-  //
-  // (strength * (l-1.)) + (FRIC * (v dot d)/l)
-  // ------------------------------------------ * d
-  //                     l
-  //
-  // where d is the vector between the two points, l is the length of d,
-  // and v is the difference between their velocities.  This handles
-  // spring force Fs = -k(x-x0), and friction force Ff = -Rv, where
-  // k = strength, R = FRIC, and x0 = 1.
-  //
-  // Each of the following functions is specialized to calculate the
-  // indicated forces by the above method in as vectorizable a fashion
-  // as possible.
+  /* Essentially, we are calculating */
+  /* */
+  /* (strength * (l-1.)) + (FRIC * (v dot d)/l) */
+  /* ------------------------------------------ * d */
+  /*                     l */
+  /* */
+  /* where d is the vector between the two points, l is the length of d, */
+  /* and v is the difference between their velocities.  This handles */
+  /* spring force Fs = -k(x-x0), and friction force Ff = -Rv, where */
+  /* k = strength, R = FRIC, and x0 = 1. */
+  /* */
+  /* Each of the following functions is specialized to calculate the */
+  /* indicated forces by the above method in as vectorizable a fashion */
+  /* as possible. */
 
   force_horizontal (f_i);
   force_vertical (f_i);
@@ -278,21 +278,21 @@ void force_horizontal(FlagInfo *f_i)
 {
   int i;
 
-  vecsub3(f_i->pxyz,f_i->pxyz+1,f_i->dxyz,f_i->len3-1);	// d = p1-p (vec from p to p1) 
-  vecmul3(f_i->dxyz,f_i->dxyz,f_i->txyz,f_i->len3-1);     // t = d*d 
-  vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-1);	// tx += ty 
-  vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-1);	// tx += tz (tx=(length d)^2) 
+  vecsub3(f_i->pxyz,f_i->pxyz+1,f_i->dxyz,f_i->len3-1);	/* d = p1-p (vec from p to p1)  */
+  vecmul3(f_i->dxyz,f_i->dxyz,f_i->txyz,f_i->len3-1);     /* t = d*d  */
+  vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-1);	/* tx += ty  */
+  vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-1);	/* tx += tz (tx=(length d)^2)  */
 
-  // No interaction between ends of flag: 
+  /* No interaction between ends of flag:  */
 
   for (i=SIZEX-1; i<f_i->len1; i+=SIZEX)
     {f_i->txyz[i] = 1.0;}
 
-  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-1);    // t *= SQRTSCALE        
+  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-1);    /* t *= SQRTSCALE         */
 
-  //veci(f_i->len1-1) 
+  /*veci(f_i->len1-1)  */
   for(i=0;i<f_i->len1-1;i++)
-    {            // f_i->ld = length(d)        
+    {            /* f_i->ld = length(d)         */
       if ((int)f_i->txyz[i] >= SQRTRES) 
 	{
 	  printf("force_horizontal: (int)f_i->txyz[%d] = %d\n",i, (int)f_i->txyz[i]);
@@ -302,60 +302,60 @@ void force_horizontal(FlagInfo *f_i)
     }
 
 
-  // Now, f_i->ld = length(d), and we are done with f_i->txyz.
+  /* Now, f_i->ld = length(d), and we are done with f_i->txyz. */
 
 
 
-  // Using f_i->ld, find spring force numberator.  Leave
-  // result in f_i->sf.
+  /* Using f_i->ld, find spring force numberator.  Leave */
+  /* result in f_i->sf. */
 
-  veccopy(f_i->ld,f_i->sf,f_i->len1-1);        // f_i->sf = f_i->ld            
-  vecsubc(1.,f_i->sf,f_i->len1-1);             // f_i->sf = f_i->ld-1.            
-  vecmulc(f_i->strength,f_i->sf,f_i->len1-1);  // f_i->sf = strength * (f_i->ld-1.)    
+  veccopy(f_i->ld,f_i->sf,f_i->len1-1);        /* f_i->sf = f_i->ld             */
+  vecsubc(1.,f_i->sf,f_i->len1-1);             /* f_i->sf = f_i->ld-1.             */
+  vecmulc(f_i->strength,f_i->sf,f_i->len1-1);  /* f_i->sf = strength * (f_i->ld-1.)     */
 
 
-  // Using f_i->ld, d, and v, find FRICtion
-  // force numberator.  Leave result in f_i->txyz.
+  /* Using f_i->ld, d, and v, find FRICtion */
+  /* force numberator.  Leave result in f_i->txyz. */
 
-  vecsub3(f_i->vxyz,f_i->vxyz+1,f_i->txyz,f_i->len3-1); // t = v (rel velocity)    
-  vecmul(f_i->dxyz,f_i->txyz,f_i->len3-1);      // t = v * d            
-  vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-1);      // ...            
-  vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-1);      // t = v dot d        
-  //NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-1);      // t = FRIC * (v dot d)    
-  //NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-1);          // t = FRIC * (v dot d) / l    
+  vecsub3(f_i->vxyz,f_i->vxyz+1,f_i->txyz,f_i->len3-1); /* t = v (rel velocity)     */
+  vecmul(f_i->dxyz,f_i->txyz,f_i->len3-1);      /* t = v * d             */
+  vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-1);      /* ...             */
+  vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-1);      /* t = v dot d         */
+  /*NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-1);      // t = FRIC * (v dot d)     */
+  /*NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-1);          // t = FRIC * (v dot d) / l     */
 
-  // Nullify any effects at the wrap around
-  // points. (sides of flag)
+  /* Nullify any effects at the wrap around */
+  /* points. (sides of flag) */
 
   for (i=SIZEX-1; i<f_i->len1; i+=SIZEX)
     {f_i->txyz[i] = 0.0;}
 
-  // Add forces together...
+  /* Add forces together... */
 
   vecadd(f_i->txyz,f_i->sf,f_i->len1-1);
 
-  //NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-1); // f_i->sf = (lots of stuff)/f_i->ld    
+  /*NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-1); // f_i->sf = (lots of stuff)/f_i->ld     */
 
-  vecmul(f_i->sf,f_i->dxyz+f_i->xoff,f_i->len1-1);    // d  = force vector.        
-  vecmul(f_i->sf,f_i->dxyz+f_i->yoff,f_i->len1-1);    // d  = force vector.        
-  vecmul(f_i->sf,f_i->dxyz+f_i->zoff,f_i->len1-1);    // d  = force vector.        
+  vecmul(f_i->sf,f_i->dxyz+f_i->xoff,f_i->len1-1);    /* d  = force vector.         */
+  vecmul(f_i->sf,f_i->dxyz+f_i->yoff,f_i->len1-1);    /* d  = force vector.         */
+  vecmul(f_i->sf,f_i->dxyz+f_i->zoff,f_i->len1-1);    /* d  = force vector.         */
 
-  // Remember, when going from a len1 to
-  // a len3, we must pay special attention to
-  // what happens at the wrap around points.
+  /* Remember, when going from a len1 to */
+  /* a len3, we must pay special attention to */
+  /* what happens at the wrap around points. */
 
 
   f_i->dxyz[f_i->len1-1] = 0.0;
   f_i->dxyz[f_i->yoff+f_i->len1-1] = 0.0;
 
-  vecadd(f_i->dxyz,f_i->fxyz,f_i->len3-1);    // Force pulling right        
-  vecsub(f_i->dxyz,f_i->fxyz+1,f_i->len3-1);    // Force pulling left        
+  vecadd(f_i->dxyz,f_i->fxyz,f_i->len3-1);    /* Force pulling right         */
+  vecsub(f_i->dxyz,f_i->fxyz+1,f_i->len3-1);    /* Force pulling left         */
 }
 
 /**************************************************************************/
 
 
-// See force_horizontal for in code comments.
+/* See force_horizontal for in code comments. */
 
 void force_vertical (FlagInfo *f_i)
 {
@@ -365,11 +365,11 @@ void force_vertical (FlagInfo *f_i)
   vecmul3(f_i->dxyz,f_i->dxyz,f_i->txyz,f_i->len3-SIZEX);
   vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-SIZEX);
   vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-SIZEX);
-  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-SIZEX);    // These two lines just set 
+  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-SIZEX);    /* These two lines just set  */
 
-  //veci(f_i->len1-SIZEX) 
+  /*veci(f_i->len1-SIZEX)  */
   for(i=0;i<f_i->len1-SIZEX;i++)
-    {// f_i->ld = sqrt(f_i->txyz)   -NOTE- 
+    {/* f_i->ld = sqrt(f_i->txyz)   -NOTE-  */
       if ((int)f_i->txyz[i] >= SQRTRES) 
 	{
 #ifdef DBG_MESSAGE
@@ -387,10 +387,10 @@ void force_vertical (FlagInfo *f_i)
   vecmul(f_i->dxyz,f_i->txyz,f_i->len3-SIZEX);
   vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-SIZEX);
   vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-SIZEX);
-  //NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-SIZEX); 
-  //NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-SIZEX);   // NOTE: divide by 1. 
+  /*NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-SIZEX);  */
+  /*NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-SIZEX);   // NOTE: divide by 1.  */
   vecadd(f_i->txyz,f_i->sf,f_i->len1-SIZEX);
-  //NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-SIZEX);     // NOTE: divide by 1. 
+  /*NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-SIZEX);     // NOTE: divide by 1.  */
   vecmul(f_i->sf,f_i->dxyz+f_i->xoff,f_i->len1-SIZEX);
   vecmul(f_i->sf,f_i->dxyz+f_i->yoff,f_i->len1-SIZEX);
   vecmul(f_i->sf,f_i->dxyz+f_i->zoff,f_i->len1-SIZEX);
@@ -403,7 +403,7 @@ void force_vertical (FlagInfo *f_i)
 /**************************************************************************/
 
 
-// See force_horizontal for in code comments.
+/* See force_horizontal for in code comments. */
 
 void force_diagonal (FlagInfo *f_i)
 {
@@ -414,16 +414,16 @@ void force_diagonal (FlagInfo *f_i)
   vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-(SIZEX+1));
   vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-(SIZEX+1));
   for (i=SIZEX-1; i<f_i->len1-(SIZEX+1); i+=SIZEX)
-    {f_i->txyz[i] = 1.0;}            // Anything safe for sqrt 
-  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-(SIZEX+1)); // These two lines just set 
-  //veci(f_i->len1-(SIZEX+1)) 
+    {f_i->txyz[i] = 1.0;}            /* Anything safe for sqrt  */
+  vecmulc(SQRTSCALE,f_i->txyz,f_i->len1-(SIZEX+1)); /* These two lines just set  */
+  /*veci(f_i->len1-(SIZEX+1))  */
   for(i=0;i<f_i->len1-(SIZEX+1);i++)
-    {            // f_i->ld = sqrt(f_i->txyz)   -NOTE- 
+    {            /* f_i->ld = sqrt(f_i->txyz)   -NOTE-  */
       if ((int)f_i->txyz[i] >= SQRTRES) 
 	{
 
-	  //            printf("force_diagonal: (int)f_i->txyz[%d] = %d\n",
-	  //                            i, (int)f_i->txyz[i]);
+	  /*            printf("force_diagonal: (int)f_i->txyz[%d] = %d\n", */
+	  /*                            i, (int)f_i->txyz[i]); */
 
 	  f_i->txyz[i] = SQRTRES - 1;
 	}
@@ -436,14 +436,14 @@ void force_diagonal (FlagInfo *f_i)
   vecmul(f_i->dxyz,f_i->txyz,f_i->len3-(SIZEX+1));
   vecadd(f_i->txyz+f_i->yoff,f_i->txyz,f_i->len1-(SIZEX+1));
   vecadd(f_i->txyz+f_i->zoff,f_i->txyz,f_i->len1-(SIZEX+1));
-  //NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-(SIZEX+1)); 
-  //NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-(SIZEX+1));        // NOTE: divide by DLEN 
-  //NOTE
-  vecmulc((1./DLEN),f_i->txyz,f_i->len1-(SIZEX+1));    // NOTE: Substitute for above
+  /*NOTE    vecmulc(FRIC,f_i->txyz,f_i->len1-(SIZEX+1));  */
+  /*NOTE    vecdiv(f_i->ld,f_i->txyz,f_i->len1-(SIZEX+1));        // NOTE: divide by DLEN  */
+  /*NOTE */
+  vecmulc((1./DLEN),f_i->txyz,f_i->len1-(SIZEX+1));    /* NOTE: Substitute for above */
   vecadd(f_i->txyz,f_i->sf,f_i->len1-(SIZEX+1));
-  //NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-(SIZEX+1));        // NOTE: divide by DLEN 
-  //NOTE
-  vecmulc((1./DLEN),f_i->sf,f_i->len1-(SIZEX+1));    // NOTE: Substitute for above
+  /*NOTE    vecdiv(f_i->ld,f_i->sf,f_i->len1-(SIZEX+1));        // NOTE: divide by DLEN  */
+  /*NOTE */
+  vecmulc((1./DLEN),f_i->sf,f_i->len1-(SIZEX+1));    /* NOTE: Substitute for above */
   vecmul(f_i->sf,f_i->dxyz+f_i->xoff,f_i->len1-(SIZEX+1));
   vecmul(f_i->sf,f_i->dxyz+f_i->yoff,f_i->len1-(SIZEX+1));
   vecmul(f_i->sf,f_i->dxyz+f_i->zoff,f_i->len1-(SIZEX+1));
@@ -459,20 +459,20 @@ void force_diagonal (FlagInfo *f_i)
 
 void externalforces (FlagInfo *f_i, Steer *steer)
 {
-  vecaddc ((-G), f_i->fxyz + f_i->yoff, f_i->len1);// Force Due to Gravity 
-  force_wind (f_i);			// Force Due to Wind    
+  vecaddc ((-G), f_i->fxyz + f_i->yoff, f_i->len1);/* Force Due to Gravity  */
+  force_wind (f_i);			/* Force Due to Wind     */
 
-  // Zero total force on attatchment points:
-  //
-  // To attatch all pole-side points:
-  //
-  // for (i=0; i<len3; i+=SIZEX)
-  //    f_i->fxyz[i] = 0.0;
-  //
-  // To attattch only the corners:
+  /* Zero total force on attatchment points: */
+  /* */
+  /* To attatch all pole-side points: */
+  /* */
+  /* for (i=0; i<len3; i+=SIZEX) */
+  /*    f_i->fxyz[i] = 0.0; */
+  /* */
+  /* To attattch only the corners: */
 
 
-  // Release bottom of flag. 
+  /* Release bottom of flag.  */
 
   if (steer->flag_release[RELEASE_BOTTOM]==0)
     {   f_i->fxyz [0]    = 0.0;
@@ -480,7 +480,7 @@ void externalforces (FlagInfo *f_i, Steer *steer)
     f_i->fxyz [f_i->zoff] = 0.0;
     }
 
-  // Release top of flag. 
+  /* Release top of flag.  */
 
   if (steer->flag_release[RELEASE_TOP]==0)
     {   f_i->fxyz [       (SIZEX*(SIZEY-1))] = 0.0;
@@ -489,34 +489,34 @@ void externalforces (FlagInfo *f_i, Steer *steer)
     }
 }
 
-// ***************************************************************************
-// ** This takes the cross product of the connection to the right with the
-// ** connection upward, to get the 'normal' of that node, which is then dotted
-// ** with the relative wind.  (Relative wind is the absolute wind less the
-// ** motion of that node.) That dot product is multiplied by the original
-// ** normal vector, and added as force on that node, and perhaps the connected
-// ** nodes.  (I haven't decided yet.) It should be noted that again assuming a
-// ** connection length of 1., and a 90 degree connection, saves much hassle.
-// ** 
-// ** NOTE that the wind-friction factor is assumed 1., which is to say, the
-// ** force generated by a wind of velocity 1. (in the same units as vxyz)
-// ** hitting a square dead on (perpendicular) will generate a perpendicular
-// ** force of 1..  This can make the flag look dead, but it also helps make it
-// ** look light (very affected by the wind.)  If it looks to weightless, throw
-// ** in a vecmulc of some less than 1. number just before adding this wind
-// ** force to the global fxyz.
-// ***************************************************************************/
+/* *************************************************************************** */
+/* ** This takes the cross product of the connection to the right with the */
+/* ** connection upward, to get the 'normal' of that node, which is then dotted */
+/* ** with the relative wind.  (Relative wind is the absolute wind less the */
+/* ** motion of that node.) That dot product is multiplied by the original */
+/* ** normal vector, and added as force on that node, and perhaps the connected */
+/* ** nodes.  (I haven't decided yet.) It should be noted that again assuming a */
+/* ** connection length of 1., and a 90 degree connection, saves much hassle. */
+/* **  */
+/* ** NOTE that the wind-friction factor is assumed 1., which is to say, the */
+/* ** force generated by a wind of velocity 1. (in the same units as vxyz) */
+/* ** hitting a square dead on (perpendicular) will generate a perpendicular */
+/* ** force of 1..  This can make the flag look dead, but it also helps make it */
+/* ** look light (very affected by the wind.)  If it looks to weightless, throw */
+/* ** in a vecmulc of some less than 1. number just before adding this wind */
+/* ** force to the global fxyz. */
+/* ***************************************************************************/
 
 
 void force_wind (FlagInfo *f_i)
 {
   int i;
 
-  vecsub3(f_i->pxyz,f_i->pxyz+1,f_i->dxyz,f_i->len3-(SIZEX+1)); // Rel vectors to right, 
-  vecsub3(f_i->pxyz,f_i->pxyz+SIZEX,f_i->txyz,f_i->len3-(SIZEX+1)); // and up. 
+  vecsub3(f_i->pxyz,f_i->pxyz+1,f_i->dxyz,f_i->len3-(SIZEX+1)); /* Rel vectors to right,  */
+  vecsub3(f_i->pxyz,f_i->pxyz+SIZEX,f_i->txyz,f_i->len3-(SIZEX+1)); /* and up.  */
 
 
-  // Cross product: norm = f_i->dxyz X f_i->txyz
+  /* Cross product: norm = f_i->dxyz X f_i->txyz */
 
   vecmul3(f_i->dxyz+f_i->yoff,f_i->txyz+f_i->zoff,f_i->a,f_i->len1-(SIZEX+1));
   vecmul3(f_i->dxyz+f_i->zoff,f_i->txyz+f_i->yoff,f_i->b,f_i->len1-(SIZEX+1));
@@ -528,36 +528,36 @@ void force_wind (FlagInfo *f_i)
   vecmul3(f_i->dxyz+f_i->yoff,f_i->txyz+f_i->xoff,f_i->b,f_i->len1-(SIZEX+1));
   vecsub3(f_i->b,f_i->a,f_i->norm+f_i->zoff,f_i->len1-(SIZEX+1));
 
-  // Calculate rel wind/4.
-  // (Divide by four cause we're gonna
-  // add it to all four nodes on that
-  // square.)
+  /* Calculate rel wind/4. */
+  /* (Divide by four cause we're gonna */
+  /* add it to all four nodes on that */
+  /* square.) */
 
   vecsubc3(f_i->windx,f_i->vxyz+f_i->xoff,f_i->rel+f_i->xoff,f_i->len1-(SIZEX+1));
   vecsubc3(f_i->windy,f_i->vxyz+f_i->yoff,f_i->rel+f_i->yoff,f_i->len1-(SIZEX+1));
   vecsubc3(f_i->windz,f_i->vxyz+f_i->zoff,f_i->rel+f_i->zoff,f_i->len1-(SIZEX+1));
   vecmulc(-0.25,f_i->rel,f_i->len3-(SIZEX+1));
 
-  // Dot product: a = norm dot rel wind/4.
+  /* Dot product: a = norm dot rel wind/4. */
 
   vecmul3(f_i->norm,f_i->rel,f_i->a,f_i->len3-(SIZEX+1));
   vecadd(f_i->a+f_i->yoff,f_i->a,f_i->len1-(SIZEX+1));
   vecadd(f_i->a+f_i->zoff,f_i->a,f_i->len1-(SIZEX+1));
 
-  // Multiply norm by a.
+  /* Multiply norm by a. */
 
   vecmul(f_i->a,f_i->norm+f_i->xoff,f_i->len1-(SIZEX+1));
   vecmul(f_i->a,f_i->norm+f_i->yoff,f_i->len1-(SIZEX+1));
   vecmul(f_i->a,f_i->norm+f_i->zoff,f_i->len1-(SIZEX+1));
 
-  // Clean up the wrap crap
+  /* Clean up the wrap crap */
 
   veccopyc(0.,f_i->norm+(f_i->len1-SIZEX),SIZEX-1);
   veccopyc(0.,f_i->norm+(f_i->yoff+(f_i->len1-SIZEX)),SIZEX-1);
   for (i=SIZEX-1; i<f_i->len3-(SIZEX+1); i+=SIZEX)
     {f_i->norm[i] = 0.0;}
 
-  // Add to the force vector.
+  /* Add to the force vector. */
 
   vecadd(f_i->norm,f_i->fxyz,f_i->len3-(SIZEX+1));
   vecadd(f_i->norm,f_i->fxyz+1,f_i->len3-(SIZEX+1));
@@ -627,12 +627,12 @@ void init_flag (FlagInfo *f_i, Steer *steer)
 
 void createflag (FlagInfo *f_i, Steer *steer)
 {
-  int     ix, iy;	// Flag Vertex Indices 
-  int     index;	// Vertex Location Index 
+  int     ix, iy;	/* Flag Vertex Indices  */
+  int     index;	/* Vertex Location Index  */
   float  r_data=0.0, g_data=0.0, b_data=0.0;
-  float intensity;	// Frequency Intensity 
+  float intensity;	/* Frequency Intensity  */
 
-  // Texture UV coordinate tables to be initialized. 
+  /* Texture UV coordinate tables to be initialized.  */
 
   for (ix=0;  ix < SIZEX;  ++ix)
     {f_i->Tu[ix] = ((float)(ix) / (float)(SIZEX-1));}
@@ -673,9 +673,9 @@ void createflag (FlagInfo *f_i, Steer *steer)
 	    }
 	}
 
-      // Graphics Draw Call with texture
+      /* Graphics Draw Call with texture */
 
-      // return (1);
+      /* return (1); */
     }
 
   index = 0;
@@ -696,7 +696,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 	}
     }
 
-  // Color is flag force magnitude, unnormalized 
+  /* Color is flag force magnitude, unnormalized  */
   index = 0;
   if (steer->flag_color == COLOR_FORCEMAG)
     {
@@ -721,7 +721,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
     }
 
 
-  // Default; Color type is COLOR_PSEUDO. 
+  /* Default; Color type is COLOR_PSEUDO.  */
   index = 0;
 
   for (iy=0;  iy < SIZEY;  ++iy) 
@@ -734,9 +734,9 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
 	  ++index;
 
-	  // Compute the vertex color based on the difference between the
-	  // previous and current position of each vertex.  For the first
-	  // update, set the vertex color to gray. 
+	  /* Compute the vertex color based on the difference between the */
+	  /* previous and current position of each vertex.  For the first */
+	  /* update, set the vertex color to gray.  */
 
 	  if (f_i->traversal_counter == 0) 
 	    {
@@ -765,7 +765,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 		  intensity += (float)0.2;
 		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
 		}
-	      // Color is flag forces 
+	      /* Color is flag forces  */
 	      else if (steer->flag_color == COLOR_FORCE)
 		{
 		  intensity = (float)(f_i->fxyz[index] * 10.0);
@@ -797,10 +797,10 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
 void recreateflag (FlagInfo *f_i, Steer *steer)
 {
-  int     ix, iy;	// Flag Vertex Indices 
-  int     index;	// Vertex Location Index 
+  int     ix, iy;	/* Flag Vertex Indices  */
+  int     index;	/* Vertex Location Index  */
   float  r_data=0.0, g_data=0.0, b_data=0.0;
-  float intensity;	// Frequency Intensity 
+  float intensity;	/* Frequency Intensity  */
 
 
 
@@ -854,7 +854,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
       }
   }
 
-  // Color is flag force magnitude, unnormalized 
+  /* Color is flag force magnitude, unnormalized  */
   index = 0;
   if (steer->flag_color == COLOR_FORCEMAG)
     {
@@ -876,7 +876,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
     }
 
 
-  // Default; Color type is COLOR_PSEUDO. 
+  /* Default; Color type is COLOR_PSEUDO.  */
 
   index = 0;
 
@@ -891,9 +891,9 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 
 	  ++index;
 
-	  // Compute the vertex color based on the difference between the
-	  // previous and current position of each vertex.  For the first
-	  // update, set the vertex color to gray. 
+	  /* Compute the vertex color based on the difference between the */
+	  /* previous and current position of each vertex.  For the first */
+	  /* update, set the vertex color to gray.  */
 
 	  if (f_i->traversal_counter == 0) 
 	    {
@@ -922,7 +922,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 		  intensity += (float)0.2;
 		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
 		}
-	      // Color is flag forces 
+	      /* Color is flag forces  */
 	      else if (steer->flag_color == COLOR_FORCE)
 		{
 		  intensity = (float)(f_i->fxyz[index] * 10.0);
