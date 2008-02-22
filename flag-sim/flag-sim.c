@@ -96,12 +96,14 @@ int main(int argc, char** argv) {
   /*
    * Variables declared in this section are needed for steering
    *
-   * Add more things here to be used in subsequent libray calls.
+   * Add more things here to be used in subsequent
+   * steering library calls.
    */
+
   int finished = REG_FALSE;
 #else
   int main_loop_max = 2000;
-  int output_freq = 100;
+  int output_freq = 200;
 #endif
 
   FlagInfo flag_info;
@@ -149,6 +151,7 @@ int main(int argc, char** argv) {
    *
    * Initialise the library and parameters to steer/monitor.
    */
+
 #else
   /* get run time and output frequency from command args */
   if(argc > 3) {
@@ -206,53 +209,54 @@ int main(int argc, char** argv) {
      * There is a lot to do here!
      * (hint: Steering_control)
      */
+
 #else
     /* output data files at output_freq */
     if(main_loop_count % output_freq == 0) {
       int i;
       int j;
-      FILE* f_Vertices;
-      FILE* f_NodeData;
+      FILE* f_vertices;
+      FILE* f_nodedata;
       char filename1[1000];
       char filename2[1000];
 
       sprintf(filename1, "vertices-%d.dat", main_loop_count);
-      if((f_Vertices = fopen(filename1, "w")) == NULL) {
+      if((f_vertices = fopen(filename1, "w")) == NULL) {
 	printf("unable to open %s\n", filename1);
 	exit(EXIT_FAILURE);
       }
       sprintf(filename2, "nodedata-%d.dat", main_loop_count);
-      if((f_NodeData = fopen(filename2, "w")) == NULL) {
+      if((f_nodedata = fopen(filename2, "w")) == NULL) {
 	printf("unable to open %s\n", filename2);
 	exit(EXIT_FAILURE);
       }
 
-      fprintf(f_Vertices, "%d %d\n", SIZEX, SIZEY);
+      fprintf(f_vertices, "%d %d\n", SIZEX, SIZEY);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
 	for(i = 0; i < 3; i++) {
-	  fprintf(f_Vertices, "%f ", flag_info.Vertices[j]);
+	  fprintf(f_vertices, "%f ", flag_info.Vertices[j]);
 	  j++;
 	}
-	fprintf(f_Vertices, "\n");
+	fprintf(f_vertices, "\n");
       }
 
-      fprintf(f_NodeData, "%d %d\n", SIZEX, SIZEY);
+      fprintf(f_nodedata, "%d %d\n", SIZEX, SIZEY);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
 	for(i = 0; i < 3; i++) {
-	  fprintf(f_NodeData, "%f ", flag_info.NodeData[j]);
+	  fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
 	  j++;
 	}
-	fprintf(f_NodeData, "\n");
+	fprintf(f_nodedata, "\n");
       }
 
-      if(fclose(f_Vertices) == 1) {
-	printf("unable to close f_Vertices.dat\n");
+      if(fclose(f_vertices) == 1) {
+	printf("unable to close %s\n", filename1);
 	exit(EXIT_FAILURE);
       }
-      if(fclose(f_NodeData) == 1) {
-	printf("unable to close f_NodeData.dat\n");
+      if(fclose(f_nodedata) == 1) {
+	printf("unable to close %s\n", filename2);
 	exit(EXIT_FAILURE);
       }
     }
