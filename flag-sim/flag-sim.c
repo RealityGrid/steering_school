@@ -100,6 +100,23 @@ int main(int argc, char** argv) {
    * steering library calls.
    */
 
+  int status;
+  int numCommands;
+  int commands[REG_INITIAL_NUM_CMDS];
+  int num_recvd_cmds;
+  int recvd_cmds[REG_MAX_NUM_STR_CMDS];
+  char** recvd_cmd_params;
+  int num_params_changed;
+  char** changed_param_labels;
+  int icmd;
+
+  int num_iotypes;
+  int iotype_handle[REG_INITIAL_NUM_IOTYPES];
+  REG_IOHandleType iohandle;
+
+  int data_count;
+  int dims[2];
+
   int finished = REG_FALSE;
 #else
   int main_loop_max = 2000;
@@ -152,6 +169,75 @@ int main(int argc, char** argv) {
    * Initialise the library and parameters to steer/monitor.
    */
 
+  /* enable steering */
+  Steering_enable(REG_TRUE);
+
+  /* initialize library and register commands we want to respond to */
+  numCommands = 2;
+  commands[0] = REG_STR_STOP;
+  commands[1] = REG_STR_PAUSE_INTERNAL;
+  status = Steering_initialize("flag-sim", numCommands, commands);
+
+  if(status != REG_SUCCESS) {
+    return REG_FAILURE;
+  }
+
+  /* Allocate memory for querying library during simulation run */
+  changed_param_labels = Alloc_string_array(REG_MAX_STRING_LENGTH,
+					    REG_MAX_NUM_STR_PARAMS);
+  recvd_cmd_params = Alloc_string_array(REG_MAX_STRING_LENGTH,
+					REG_MAX_NUM_STR_CMDS);
+
+  if(!changed_param_labels || !recvd_cmd_params) {
+    printf("Failed to allocate string arrays.\n");
+    return REG_FAILURE;
+  }
+
+  /* register all the parameters */
+  status = Register_param("Flag Strength", REG_TRUE,
+			  (void*)(&flag_info.strength),
+			  REG_DBL, "6.0", "30.0");
+
+  status = Register_param("Flag Colour", REG_TRUE,
+			  (void*)(&steer.flag_color),
+			  REG_INT, "0", "4");
+
+  status = Register_param("Flag Release (top)", REG_TRUE,
+			  (void*)(&steer.flag_release[0]),
+			  REG_INT, "0", "1");
+
+  status = Register_param("Flag Release (bottom)", REG_TRUE,
+			  (void*)(&steer.flag_release[1]),
+			  REG_INT, "0", "1");
+
+  status = Register_param("Wind vector 1", REG_TRUE,
+			  (void*)(&steer.flag_wind[0]),
+			  REG_FLOAT, "0", "1");
+
+  status = Register_param("Wind vector 2", REG_TRUE,
+			  (void*)(&steer.flag_wind[1]),
+			  REG_FLOAT, "0", "1");
+
+  status = Register_param("Reset Flag", REG_TRUE,
+			  (void*)(&steer.flag_reset),
+			  REG_INT, "0", "1");
+
+  if(status != REG_SUCCESS){
+    printf("Failed to register parameters\n");
+    return REG_FAILURE;
+  }
+
+  /* register io channel to connect to visualization */
+  num_iotypes = 1;
+  if(Register_IOType("vertices",
+		     REG_IO_OUT,
+		     10,      /* Attempt to output every 10 timesteps. */
+		     &(iotype_handle[0])) != REG_SUCCESS) {
+    printf("Failed to register IO type vertices\n");
+    Steering_finalize();
+    return REG_FAILURE;
+  }
+
 #else
   /* get run time and output frequency from command args */
   if(argc > 3) {
@@ -183,6 +269,13 @@ int main(int argc, char** argv) {
   /* use a while-loop for indefinite run when steering */
   while(!finished) {
 
+    if(main_loop_count % 10 == 0) { 
+      printf("main loop count: %d\n", main_loop_count);
+    }
+
+    /* sleep for a bit as otherwise this runs too quickly! */
+    usleep(10000); 
+
     if(steer.flag_reset == 1) {
       /* reinitialise the systems */ 
       init_sqrt(&flag_info);
@@ -210,6 +303,67 @@ int main(int argc, char** argv) {
      * (hint: Steering_control)
      */
 
+    /* query steering library for changes/instructions */
+    status = Steering_control(main_loop_count,
+			      &num_params_changed,
+			      changed_param_labels,
+			      &num_recvd_cmds,
+			      recvd_cmds,
+			      recvd_cmd_params);
+
+    if(status == REG_SUCCESS) {
+      /* if commands have been received */
+      if(num_recvd_cmds > 0) {
+	/* loop through them */
+	for(icmd = 0; icmd < num_recvd_cmds; icmd++) {
+	  switch(recvd_cmds[icmd]) {
+	  case REG_STR_STOP:
+	    /* we've been told to stop - do so! */
+	    finished = REG_TRUE;
+	    break;
+
+	  default:
+	    /* have we been told to emit data? */
+	    for(n = 0; n < num_iotypes; n++) {
+	      
+	      if(recvd_cmds[icmd] == iotype_handle[n]) {
+		/* yes - do so! */
+		status = Emit_start(iotype_handle[n], main_loop_count, &iohandle);
+		if(status != REG_SUCCESS) {
+		  /* not ready to emit - next loop */
+		  continue;
+		}
+		
+		dims[0] = flag_info.sizex;
+		dims[1] = flag_info.sizey;
+		data_count = 2;
+		status = Emit_data_slice(iohandle,
+					 REG_INT,
+					 data_count,
+					 dims);
+		
+		data_count = flag_info.sizex * flag_info.sizey * 3;
+		status = Emit_data_slice(iohandle,
+					 REG_FLOAT,
+					 data_count,
+					 flag_info.Vertices);
+		  
+		Emit_stop(&iohandle);
+	      }
+	    }
+	    break;
+	  }
+	}
+	if(finished) break;
+      }
+      if(finished) break;
+    }
+    else {
+      printf("Call to steering control failed.\n");
+    }
+
+    /* need to increment the loop count manually */
+    main_loop_count++;
 #else
     /* output data files at output_freq */
     if(main_loop_count % output_freq == 0) {
@@ -267,6 +421,8 @@ int main(int argc, char** argv) {
   /*
    * Finalize steering library here!
    */
+
+  status = Steering_finalize();
 #endif
 
   return 0;
