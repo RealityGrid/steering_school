@@ -817,10 +817,10 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
   }
 #endif
 
-  index = 0;
+  switch(steer->flag_color) {
 
-  if (steer->flag_color == COLOR_TEXTURE) {
-
+  case COLOR_TEXTURE:
+    index = 0;  
     for(iy=0;  iy < SIZEY;  ++iy)
       {
 	for(ix=0;  ix < SIZEX;  ++ix)
@@ -836,12 +836,10 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 	    ++index;
 	  }
       }
-  }
+    break;
 
-  index = 0;
-
-  if (steer->flag_color == COLOR_SOLID) {
-
+  case COLOR_SOLID:
+    index = 0;
     for (iy=0;  iy < SIZEY;  ++iy) 
       {
 	for (ix=0;  ix < SIZEX;  ++ix) 
@@ -852,101 +850,99 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 	    ++index;
 	  }
       }
+    break;
+  case COLOR_FORCEMAG:
+    /* Color is flag force magnitude, unnormalized  */
+    index = 0;
+    for (iy=0;  iy < SIZEY;  ++iy) 
+      {
+	for (ix=0;  ix < SIZEX;  ++ix) 
+	  {
+	    intensity = (float)(f_i->fxyz[index]      * f_i->fxyz[index] +
+				f_i->fxyz[index+f_i->yoff] * f_i->fxyz[index+f_i->yoff] +
+				f_i->fxyz[index+f_i->zoff] * f_i->fxyz[index+f_i->zoff]);
+
+	    f_i->NodeData[ VINDEX(ix,iy) ] = (float)sqrt( intensity );
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 2] = (float)f_i->pxyz[index+f_i->zoff];
+	    ++index;
+	  }
+      }
+    break;
+
+  default:
+    /* Default; Color type is COLOR_PSEUDO.  */
+    index = 0;
+
+    for (iy=0;  iy < SIZEY;  ++iy) 
+      {
+	for (ix=0;  ix < SIZEX;  ++ix) 
+	  {
+
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
+	    f_i->Vertices[3 * VINDEX(ix,iy) + 2] = (float)f_i->pxyz[index+f_i->zoff];
+
+	    ++index;
+
+	    /* Compute the vertex color based on the difference between the */
+	    /* previous and current position of each vertex.  For the first */
+	    /* update, set the vertex color to gray.  */
+
+	    if (f_i->traversal_counter == 0) 
+	      {
+
+		r_data = 0.5;
+		g_data = 0.5;
+		b_data = 0.5;
+
+	      } else {
+
+
+		if (steer->flag_color == COLOR_VELOCITY)
+		  {
+		    intensity = (float)(f_i->vxyz[index] * 1.5);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    r_data = (float)CLAMP(intensity, 0.0, 1.0);
+
+		    intensity = (float)(f_i->vxyz[index+f_i->yoff] * 1.5);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    g_data = (float)CLAMP(intensity, 0.0, 1.0);
+
+		    intensity = (float)(f_i->vxyz[index+f_i->zoff] * 1.5);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    b_data = (float)CLAMP(intensity, 0.0, 1.0);
+		  }
+		/* Color is flag forces  */
+		else if (steer->flag_color == COLOR_FORCE)
+		  {
+		    intensity = (float)(f_i->fxyz[index] * 10.0);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    r_data = (float)CLAMP(intensity, 0.0, 1.0);
+
+		    intensity = (float)(f_i->fxyz[index+f_i->yoff] * 10.0);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    g_data = (float)CLAMP (intensity, 0.0, 1.0);
+
+		    intensity = (float)(f_i->fxyz[index+f_i->zoff] * 10.0);
+		    if (intensity < 0.0) intensity = -intensity;
+		    intensity += (float)0.2;
+		    b_data = (float)CLAMP(intensity, 0.0, 1.0);
+		  }
+	      }
+	    f_i->NodeData[3 * VINDEX(ix,iy) + 0] = (float)r_data;
+	    f_i->NodeData[3 * VINDEX(ix,iy) + 1] = (float)g_data;
+	    f_i->NodeData[3 * VINDEX(ix,iy) + 2] = (float)b_data;
+	  }
+      }
+    break;
   }
-
-  /* Color is flag force magnitude, unnormalized  */
-  index = 0;
-  if (steer->flag_color == COLOR_FORCEMAG)
-    {
-      for (iy=0;  iy < SIZEY;  ++iy) 
-	{
-	  for (ix=0;  ix < SIZEX;  ++ix) 
-	    {
-	      intensity = (float)(f_i->fxyz[index]      * f_i->fxyz[index] +
-				  f_i->fxyz[index+f_i->yoff] * f_i->fxyz[index+f_i->yoff] +
-				  f_i->fxyz[index+f_i->zoff] * f_i->fxyz[index+f_i->zoff]);
-
-	      f_i->NodeData[ VINDEX(ix,iy) ] = (float)sqrt( intensity );
-	      f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
-	      f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
-	      f_i->Vertices[3 * VINDEX(ix,iy) + 2] = (float)f_i->pxyz[index+f_i->zoff];
-	      ++index;
-	    }
-	}
-    }
-
-
-  /* Default; Color type is COLOR_PSEUDO.  */
-
-  index = 0;
-
-  for (iy=0;  iy < SIZEY;  ++iy) 
-    {
-      for (ix=0;  ix < SIZEX;  ++ix) 
-	{
-
-	  f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
-	  f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
-	  f_i->Vertices[3 * VINDEX(ix,iy) + 2] = (float)f_i->pxyz[index+f_i->zoff];
-
-	  ++index;
-
-	  /* Compute the vertex color based on the difference between the */
-	  /* previous and current position of each vertex.  For the first */
-	  /* update, set the vertex color to gray.  */
-
-	  if (f_i->traversal_counter == 0) 
-	    {
-
-	      r_data = 0.5;
-	      g_data = 0.5;
-	      b_data = 0.5;
-
-	    } else {
-
-
-	      if (steer->flag_color == COLOR_VELOCITY)
-		{
-		  intensity = (float)(f_i->vxyz[index] * 1.5);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  r_data = (float)CLAMP(intensity, 0.0, 1.0);
-
-		  intensity = (float)(f_i->vxyz[index+f_i->yoff] * 1.5);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  g_data = (float)CLAMP(intensity, 0.0, 1.0);
-
-		  intensity = (float)(f_i->vxyz[index+f_i->zoff] * 1.5);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
-		}
-	      /* Color is flag forces  */
-	      else if (steer->flag_color == COLOR_FORCE)
-		{
-		  intensity = (float)(f_i->fxyz[index] * 10.0);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  r_data = (float)CLAMP(intensity, 0.0, 1.0);
-
-		  intensity = (float)(f_i->fxyz[index+f_i->yoff] * 10.0);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  g_data = (float)CLAMP (intensity, 0.0, 1.0);
-
-		  intensity = (float)(f_i->fxyz[index+f_i->zoff] * 10.0);
-		  if (intensity < 0.0) intensity = -intensity;
-		  intensity += (float)0.2;
-		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
-		}
-	    }
-	  f_i->NodeData[3 * VINDEX(ix,iy) + 0] = (float)r_data;
-	  f_i->NodeData[3 * VINDEX(ix,iy) + 1] = (float)g_data;
-	  f_i->NodeData[3 * VINDEX(ix,iy) + 2] = (float)b_data;
-	}
-    }
-
 }
 
 

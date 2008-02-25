@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
   }
 
   /* initialize values in steer */
-  steer.flag_color = COLOR_SOLID;
+  steer.flag_color = COLOR_TEXTURE;
   steer.flag_release[RELEASE_TOP] = 0;
   steer.flag_release[RELEASE_BOTTOM] = 0;
   steer.flag_wind[0] = 0.5f;
@@ -154,15 +154,29 @@ int main(int argc, char** argv) {
 
 #else
   /* get run time and output frequency from command args */
-  if(argc > 3) {
-    fprintf(stderr, "Usage: %s [no. loops] [output freq]\n", argv[0]);
+  if(argc > 4) {
+    fprintf(stderr, "Usage: %s [flag colour] [no. loops] [output freq]", argv[0]);
+    fprintf(stderr, "\n\n  where flag colour can be:\t0 - solid colour,\n");
+    fprintf(stderr, "\t\t\t\t1 - coloured by velocity,\n");
+    fprintf(stderr, "\t\t\t\t2 - coloured by force,\n");
+    fprintf(stderr, "\t\t\t\t3 - coloured by force magnitude,\n");
+    fprintf(stderr, "\t\t\t\t4 - texture mapped (default).\n");
     exit(EXIT_FAILURE);
   }
+
   if(argc > 1) {
-    main_loop_max = atoi(argv[1]);
+    int colour = atoi(argv[1]);
+    if(colour >= 0 && colour <= 4) {
+      steer.flag_color = colour;
+    }
   }
+
   if(argc > 2) {
-    output_freq = atoi(argv[2]);
+    main_loop_max = atoi(argv[2]);
+  }
+
+  if(argc > 3) {
+    output_freq = atoi(argv[3]);
   }
   else {
     output_freq = (int) main_loop_max / 10; 
@@ -224,6 +238,7 @@ int main(int argc, char** argv) {
     if(main_loop_count % output_freq == 0) {
       int i;
       int j;
+      int vec_length;
       FILE* f_vertices;
       FILE* f_nodedata;
       char filename1[1000];
@@ -250,10 +265,24 @@ int main(int argc, char** argv) {
 	fprintf(f_vertices, "\n");
       }
 
-      fprintf(f_nodedata, "%d %d\n", SIZEX, SIZEY);
+      switch(steer.flag_color) {
+      case COLOR_TEXTURE:
+	vec_length = 2;
+	break;
+      case COLOR_FORCEMAG:
+	vec_length = 1;
+	break;
+      case COLOR_VELOCITY:
+      case COLOR_FORCE:
+      case COLOR_SOLID:
+	vec_length = 3;
+	break;
+      }
+
+      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, vec_length);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
-	for(i = 0; i < 3; i++) {
+	for(i = 0; i < vec_length; i++) {
 	  fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
 	  j++;
 	}

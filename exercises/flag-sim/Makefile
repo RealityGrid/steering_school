@@ -34,7 +34,7 @@ LDFLAGS=${REG_LINK} -lm
 
 # build the objects and link into the executable...
 
-${TARGET}: flag-sim.c
+${TARGET}: flag-sim.c flag-utils.c
 	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
 
 no-steering:
