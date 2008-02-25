@@ -25,12 +25,12 @@
 
 TARGET=flag-sim
 
-REG_LINK=-L${REG_STEER_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2 -lm
+REG_LINK=-L${REG_STEER_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2
 
 CC=gcc
 CPPFLAGS=-I. -I${REG_STEER_HOME}/include
 CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK}
+LDFLAGS=${REG_LINK} -lm
 
 # build the objects and link into the executable...
 
@@ -38,7 +38,7 @@ ${TARGET}: flag-sim.c
 	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
 
 no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING"
+	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
 
 debug:
 	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
