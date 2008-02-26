@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
 
   int n;
   int main_loop_count = 0;
+  int data_vec_length;
 #ifndef NO_STEERING
   /*
    * Variables declared in this section are needed for steering
@@ -115,7 +116,7 @@ int main(int argc, char** argv) {
   REG_IOHandleType iohandle;
 
   int data_count;
-  int dims[2];
+  int dims[3];
 
   int finished = REG_FALSE;
 #else
@@ -229,11 +230,11 @@ int main(int argc, char** argv) {
 
   /* register io channel to connect to visualization */
   num_iotypes = 1;
-  if(Register_IOType("vertices",
+  if(Register_IOType("flag data",
 		     REG_IO_OUT,
 		     10,      /* Attempt to output every 10 timesteps. */
 		     &(iotype_handle[0])) != REG_SUCCESS) {
-    printf("Failed to register IO type vertices\n");
+    printf("Failed to register IO type \"flag data\"\n");
     Steering_finalize();
     return REG_FAILURE;
   }
@@ -278,6 +279,21 @@ int main(int argc, char** argv) {
   init_flag(&flag_info, &steer);
   calc_wind(&flag_info, &steer);
   createflag(&flag_info, &steer);
+
+  /* get initial node data vector length */
+  switch(steer.flag_color) {
+  case COLOR_TEXTURE:
+    data_vec_length = 2;
+    break;
+  case COLOR_FORCEMAG:
+    data_vec_length = 1;
+    break;
+  case COLOR_VELOCITY:
+  case COLOR_FORCE:
+  case COLOR_SOLID:
+    data_vec_length = 3;
+    break;
+  }
 
 #ifndef NO_STEERING
   /* use a while-loop for indefinite run when steering */
@@ -326,6 +342,33 @@ int main(int argc, char** argv) {
 			      recvd_cmd_params);
 
     if(status == REG_SUCCESS) {
+      /* if params have been changed */
+      if(num_params_changed > 0) {
+	printf("%d params changed\n", num_params_changed);
+
+	/* we don't have enough parameters to really worry about
+	 * which have changed - assume they all have!
+	 *
+	 * The only ones we care about changing here are
+	 * flag colour and wind vector anyway.
+	 */
+	switch(steer.flag_color) {
+	case COLOR_TEXTURE:
+	  data_vec_length = 2;
+	  break;
+	case COLOR_FORCEMAG:
+	  data_vec_length = 1;
+	  break;
+	case COLOR_VELOCITY:
+	case COLOR_FORCE:
+	case COLOR_SOLID:
+	  data_vec_length = 3;
+	  break;
+	}
+
+	calc_wind(&flag_info, &steer);
+      }
+
       /* if commands have been received */
       if(num_recvd_cmds > 0) {
 	/* loop through them */
@@ -350,18 +393,25 @@ int main(int argc, char** argv) {
 		
 		dims[0] = flag_info.sizex;
 		dims[1] = flag_info.sizey;
-		data_count = 2;
+		dims[2] = data_vec_length;
+		data_count = 3;
 		status = Emit_data_slice(iohandle,
 					 REG_INT,
 					 data_count,
 					 dims);
-		
+
 		data_count = flag_info.sizex * flag_info.sizey * 3;
 		status = Emit_data_slice(iohandle,
 					 REG_FLOAT,
 					 data_count,
 					 flag_info.Vertices);
-		  
+
+		data_count = flag_info.sizex * flag_info.sizey * data_vec_length;
+		status = Emit_data_slice(iohandle,
+					 REG_FLOAT,
+					 data_count,
+					 flag_info.NodeData);
+
 		Emit_stop(&iohandle);
 	      }
 	    }
@@ -383,7 +433,6 @@ int main(int argc, char** argv) {
     if(main_loop_count % output_freq == 0) {
       int i;
       int j;
-      int vec_length;
       FILE* f_vertices;
       FILE* f_nodedata;
       char filename1[1000];
@@ -410,24 +459,10 @@ int main(int argc, char** argv) {
 	fprintf(f_vertices, "\n");
       }
       
-      switch(steer.flag_color) {
-      case COLOR_TEXTURE:
-	vec_length = 2;
-	break;
-      case COLOR_FORCEMAG:
-	vec_length = 1;
-	break;
-      case COLOR_VELOCITY:
-      case COLOR_FORCE:
-      case COLOR_SOLID:
-	vec_length = 3;
-	break;
-      }
-
-      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, vec_length);
+      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, data_vec_length);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
-	for(i = 0; i < vec_length; i++) {
+	for(i = 0; i < data_vec_length; i++) {
 	  fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
 	  j++;
 	}

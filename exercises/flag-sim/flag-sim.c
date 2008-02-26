@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
 
   int n;
   int main_loop_count = 0;
+  int data_vec_length;
 #ifndef NO_STEERING
   /*
    * Variables declared in this section are needed for steering
@@ -193,6 +194,21 @@ int main(int argc, char** argv) {
   calc_wind(&flag_info, &steer);
   createflag(&flag_info, &steer);
 
+  /* get initial node data vector length */
+  switch(steer.flag_color) {
+  case COLOR_TEXTURE:
+    data_vec_length = 2;
+    break;
+  case COLOR_FORCEMAG:
+    data_vec_length = 1;
+    break;
+  case COLOR_VELOCITY:
+  case COLOR_FORCE:
+  case COLOR_SOLID:
+    data_vec_length = 3;
+    break;
+  }
+
 #ifndef NO_STEERING
   /* use a while-loop for indefinite run when steering */
   while(!finished) {
@@ -238,7 +254,6 @@ int main(int argc, char** argv) {
     if(main_loop_count % output_freq == 0) {
       int i;
       int j;
-      int vec_length;
       FILE* f_vertices;
       FILE* f_nodedata;
       char filename1[1000];
@@ -265,24 +280,10 @@ int main(int argc, char** argv) {
 	fprintf(f_vertices, "\n");
       }
 
-      switch(steer.flag_color) {
-      case COLOR_TEXTURE:
-	vec_length = 2;
-	break;
-      case COLOR_FORCEMAG:
-	vec_length = 1;
-	break;
-      case COLOR_VELOCITY:
-      case COLOR_FORCE:
-      case COLOR_SOLID:
-	vec_length = 3;
-	break;
-      }
-
-      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, vec_length);
+      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, data_vec_length);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
-	for(i = 0; i < vec_length; i++) {
+	for(i = 0; i < data_vec_length; i++) {
 	  fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
 	  j++;
 	}

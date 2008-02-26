@@ -39,6 +39,7 @@
 #include "vtkCylinderSource.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleSwitch.h"
+#include "vtkLookupTable.h"
 #include "vtkMultiThreader.h"
 #include "vtkMutexLock.h"
 #include "vtkObject.h"
@@ -73,7 +74,7 @@ vtkMutexLock* loopLock;
 sem_t regDone;
 
 void read_flag_file(char*, vtkPolyData*);
-void create_flag(int, int, float*, vtkPolyData*);
+void create_flag(int*, float*, float*, vtkPolyData*);
 void renderCallback(vtkObject*, unsigned long, void*, void*);
 void* regLoop(void*);
 
@@ -86,6 +87,12 @@ int main(int argc, char* argv[]) {
   png->SetFileName(FLAG_IMAGE);
   vtkTexture* logo = vtkTexture::New();
   logo->SetInputConnection(png->GetOutputPort());
+
+  // set up internal colour table
+  vtkLookupTable* colourTable = vtkLookupTable::New();
+  colourTable->SetHueRange(0.0, 1.0);
+  colourTable->SetRampToLinear();
+  colourTable->Build();
 
   // create pole
   vtkCylinderSource* tube = vtkCylinderSource::New();
@@ -112,6 +119,8 @@ int main(int argc, char* argv[]) {
 
   // mappers
   vtkPolyDataMapper* meshMap = vtkPolyDataMapper::New();
+  meshMap->SetScalarRange(0.0, 0.1);
+  meshMap->SetLookupTable(colourTable);
   meshMap->SetInputConnection(norms->GetOutputPort());
 
   vtkPolyDataMapper* poleMap = vtkPolyDataMapper::New();
@@ -235,52 +244,70 @@ void read_flag_file(char* filename, vtkPolyData* data) {
   tCoords->Delete();
 }
 
-void create_flag(int xDim, int yDim, float* coords, vtkPolyData* data) {
+void create_flag(int* dims, float* coords, float* nodedata,  vtkPolyData* data) {
   vtkPoints* points = vtkPoints::New();
   vtkCellArray* strips = vtkCellArray::New();
-  vtkFloatArray* tCoords = vtkFloatArray::New();
+  vtkFloatArray* nodeData = vtkFloatArray::New();
 
   // get flag dimensions
-  int numPoints = xDim * yDim;
+  int numPoints = dims[0] * dims[1];
 
   // get points
   points->Allocate(numPoints);
-  tCoords->SetNumberOfComponents(2);
-  tCoords->SetNumberOfTuples(numPoints);
+  nodeData->SetNumberOfComponents(dims[2]);
+  nodeData->SetNumberOfTuples(numPoints);
 
-  float tiIncr = 1.0 / (xDim - 1);
-  float tjIncr = 1.0 / (yDim - 1);
-  float coord[2];
   int index;
   int c = 0;
 
-  for(int j = 0; j < yDim; j++) {
-    for(int i = 0; i < xDim; i++) {
+  for(int j = 0; j < dims[1]; j++) {
+    for(int i = 0; i < dims[0]; i++) {
       index = points->InsertNextPoint(coords[c++], coords[c++], coords[c++]);
-      coord[0] = (tiIncr * i);
-      coord[1] = (tjIncr * j);
-      tCoords->InsertTuple(index, coord);
+      nodeData->InsertTuple(index, &nodedata[(index * dims[2])]);
+      if(i == 0 && j == 0) {
+	std::cout << "(" << nodedata[(index * dims[2])];
+	if(dims[2] > 1) std::cout << ", " << nodedata[(index * dims[2] + 1)];
+	if(dims[2] > 2) std::cout << ", " << nodedata[(index * dims[2] + 2)];
+	std::cout << ")\n";
+      }
     }
   }
 
   // create strips
-  for(int i = 1; i < xDim; i++) {
-    strips->InsertNextCell(yDim * 2);
-    for(int j = 0; j < yDim; j++) {
-      strips->InsertCellPoint((xDim * j) + (i - 1));
-      strips->InsertCellPoint((xDim * j) + i);
+  for(int i = 1; i < dims[0]; i++) {
+    strips->InsertNextCell(dims[1] * 2);
+    for(int j = 0; j < dims[1]; j++) {
+      strips->InsertCellPoint((dims[0] * j) + (i - 1));
+      strips->InsertCellPoint((dims[0] * j) + i);
     }
   }
 
   // build flag
   data->SetPoints(points);
   data->SetStrips(strips);
-  data->GetPointData()->SetTCoords(tCoords);
+
+  switch(dims[2]) {
+  case 1:
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetScalars(nodeData);
+    break;
+  case 2:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(nodeData);
+    break;
+  default:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetVectors(nodeData);
+    break;
+  }
 
   // clean up
   points->Delete();
   strips->Delete();
-  tCoords->Delete();
+  nodeData->Delete();
 }
 
 void renderCallback(vtkObject* obj, unsigned long eid, void* cd, void* calld) {
@@ -346,8 +373,9 @@ void* regLoop(void* userData) {
   int dataCount;
 
   // place holders for data
-  int dims[2];
+  int dims[3];
   float* coords = NULL;
+  float* nodedata = NULL;
 
   // go into loop until told to finish
   while(!done) {
@@ -377,15 +405,19 @@ void* regLoop(void* userData) {
 	  if(status == REG_SUCCESS) {
 	    Consume_data_slice_header(ioHandle, &dataType, &dataCount);
 	    Consume_data_slice(ioHandle, dataType, dataCount, dims);
-	    //std::cout << dims[0] << " x " << dims[1] << std::endl;
+	    //std::cout << dims[0] << " x " << dims[1] << " + " << dims[2] << std::endl;
 
 	    Consume_data_slice_header(ioHandle, &dataType, &dataCount);
 	    coords = (float*) realloc(coords, dataCount * sizeof(float));
 	    Consume_data_slice(ioHandle, dataType, dataCount, coords);
-	    
+
+	    Consume_data_slice_header(ioHandle, &dataType, &dataCount);
+	    nodedata = (float*) realloc(nodedata, dataCount * sizeof(float));
+	    Consume_data_slice(ioHandle, dataType, dataCount, nodedata);
+
 	    Consume_stop(&ioHandle);
 
-	    create_flag(dims[0], dims[1], coords, td->flag);
+	    create_flag(dims, coords, nodedata, td->flag);
 	    needRefresh = true;
 	  }
 	}
