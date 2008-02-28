@@ -100,13 +100,6 @@
  *****************************/
 
 typedef struct {
-  int    flag_color;
-  int    flag_release[2];
-  float  flag_wind[2];       /* min=0.0 and max=1.0 for each component */
-  int    flag_reset;
-} Steer;
-
-typedef struct {
   int sizex;    /* flag dimension x */
   int sizey;    /* flag dimension y */
   int len1;     /* array length for scalar */
@@ -145,6 +138,8 @@ typedef struct {
   double a[SIZEX * SIZEY * 3];  
   double b[SIZEX * SIZEY];
 
+  float wind_direction[2]; /* min=0.0 and max=1.0 for each component */
+
   double windx;
   double windy;
   double windz;
@@ -164,6 +159,10 @@ typedef struct {
    */
 
   double sqrt_tbl[SQRTRES];
+
+  int flag_release[2];
+  int flag_color;
+
 } FlagInfo;
 
 /* prototypes */
@@ -189,19 +188,18 @@ void vecdiv3  (double *, double *, double *, int);
 
 int make_flag_model_group (void);
 void update_flag_callback (void);
-void forceflag  (FlagInfo *f_i, Steer *steer);
+void forceflag  (FlagInfo *f_i);
 void force_horizontal  (FlagInfo *f_i);
 void force_vertical  (FlagInfo *f_i);
 void force_diagonal  (FlagInfo *f_i);
-void externalforces  (FlagInfo *f_i, Steer *steer);
+void externalforces  (FlagInfo *f_i);
 void force_wind  (FlagInfo *f_i);
 void moveflag  (FlagInfo *f_i);
 void init_sqrt  (FlagInfo *f_i);
-void init_wind  (void);
-void init_flag  (FlagInfo *f_i, Steer *steer);
-void createflag (FlagInfo *f_i, Steer *steer);
-void recreateflag (FlagInfo *f_i, Steer *steer);
-void calc_wind  (FlagInfo *f_i, Steer *steer);
+void init_flag  (FlagInfo *f_i);
+void createflag (FlagInfo *f_i);
+void recreateflag (FlagInfo *f_i);
+void calc_wind  (FlagInfo *f_i);
 
 #define __FLAG_H__
 #endif /* __FLAG_H__ */
