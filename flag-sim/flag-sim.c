@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 #endif
 
   FlagInfo flag_info;
-  Steer steer;
+  int flag_reset;
 
   /* initialise values in flag_info */
   flag_info.sizex = SIZEX;
@@ -136,9 +136,14 @@ int main(int argc, char** argv) {
   flag_info.zoff = flag_info.len1 * 2;
   flag_info.traversal_counter = 0;
   flag_info.strength = 20.0;
+  flag_info.wind_direction[0] = 0.5f;
+  flag_info.wind_direction[1] = 1.0f;
   flag_info.windx = 0.0;
   flag_info.windy = 0.0;
   flag_info.windz = 0.0;
+  flag_info.flag_release[RELEASE_TOP] = 0;
+  flag_info.flag_release[RELEASE_BOTTOM] = 0;
+  flag_info.flag_color = COLOR_SOLID;
 
   for(n = 0; n < flag_info.len3; n++) {
     flag_info.Vertices[n] = 0.0;
@@ -154,13 +159,7 @@ int main(int argc, char** argv) {
     flag_info.sf[n] = 0.0;
   }
 
-  /* initialize values in steer */
-  steer.flag_color = COLOR_SOLID;
-  steer.flag_release[RELEASE_TOP] = 0;
-  steer.flag_release[RELEASE_BOTTOM] = 0;
-  steer.flag_wind[0] = 0.5f;
-  steer.flag_wind[1] = 0.10f;
-  steer.flag_reset = 0;
+  flag_reset = 0;
 
 #ifndef NO_STEERING
   /*
@@ -199,27 +198,27 @@ int main(int argc, char** argv) {
 			  REG_DBL, "6.0", "30.0");
 
   status = Register_param("Flag Colour", REG_TRUE,
-			  (void*)(&steer.flag_color),
+			  (void*)(&flag_info.flag_color),
 			  REG_INT, "0", "4");
 
   status = Register_param("Flag Release (top)", REG_TRUE,
-			  (void*)(&steer.flag_release[0]),
+			  (void*)(&flag_info.flag_release[0]),
 			  REG_INT, "0", "1");
 
   status = Register_param("Flag Release (bottom)", REG_TRUE,
-			  (void*)(&steer.flag_release[1]),
+			  (void*)(&flag_info.flag_release[1]),
 			  REG_INT, "0", "1");
 
   status = Register_param("Wind vector 1", REG_TRUE,
-			  (void*)(&steer.flag_wind[0]),
+			  (void*)(&flag_info.wind_direction[0]),
 			  REG_FLOAT, "0", "1");
 
   status = Register_param("Wind vector 2", REG_TRUE,
-			  (void*)(&steer.flag_wind[1]),
+			  (void*)(&flag_info.wind_direction[1]),
 			  REG_FLOAT, "0", "1");
 
   status = Register_param("Reset Flag", REG_TRUE,
-			  (void*)(&steer.flag_reset),
+			  (void*)(&flag_reset),
 			  REG_INT, "0", "1");
 
   if(status != REG_SUCCESS){
@@ -261,9 +260,9 @@ int main(int argc, char** argv) {
 
   /* initialise the systems */
   init_sqrt(&flag_info);
-  init_flag(&flag_info, &steer);
-  calc_wind(&flag_info, &steer);
-  createflag(&flag_info, &steer);
+  init_flag(&flag_info);
+  calc_wind(&flag_info);
+  createflag(&flag_info);
 
 #ifndef NO_STEERING
   /* use a while-loop for indefinite run when steering */
@@ -276,23 +275,23 @@ int main(int argc, char** argv) {
     /* sleep for a bit as otherwise this runs too quickly! */
     usleep(10000); 
 
-    if(steer.flag_reset == 1) {
+    if(flag_reset == 1) {
       /* reinitialise the systems */ 
       init_sqrt(&flag_info);
-      init_flag(&flag_info, &steer);
-      calc_wind(&flag_info, &steer);
-      recreateflag(&flag_info, &steer);
-      steer.flag_reset = 0;
+      init_flag(&flag_info);
+      calc_wind(&flag_info);
+      recreateflag(&flag_info);
+      flag_reset = 0;
     }
 #else
   /* use a for-loop for a bounded run when not steering */
   for(main_loop_count = 0; main_loop_count <= main_loop_max; main_loop_count++) {  
 #endif
 
-    forceflag(&flag_info, &steer);
-    externalforces(&flag_info, &steer);
+    forceflag(&flag_info);
+    externalforces(&flag_info);
     moveflag(&flag_info);
-    recreateflag(&flag_info, &steer);
+    recreateflag(&flag_info);
 
 #ifndef NO_STEERING
     /*

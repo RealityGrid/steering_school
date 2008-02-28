@@ -243,9 +243,9 @@ void vecdiv3 (
 
 /**************************************************************************/
 
-void forceflag(FlagInfo *f_i, Steer *steer)
+void forceflag(FlagInfo *f_i)
 {
-  calc_wind(f_i,steer);
+  calc_wind(f_i);
 
   /* Start with 0 force. */
 
@@ -457,7 +457,7 @@ void force_diagonal (FlagInfo *f_i)
 
 /**************************************************************************/
 
-void externalforces (FlagInfo *f_i, Steer *steer)
+void externalforces (FlagInfo *f_i)
 {
   vecaddc ((-G), f_i->fxyz + f_i->yoff, f_i->len1);/* Force Due to Gravity  */
   force_wind (f_i);			/* Force Due to Wind     */
@@ -474,7 +474,7 @@ void externalforces (FlagInfo *f_i, Steer *steer)
 
   /* Release bottom of flag.  */
 
-  if (steer->flag_release[RELEASE_BOTTOM]==0)
+  if (f_i->flag_release[RELEASE_BOTTOM]==0)
     {   f_i->fxyz [0]    = 0.0;
     f_i->fxyz [f_i->yoff] = 0.0;
     f_i->fxyz [f_i->zoff] = 0.0;
@@ -482,7 +482,7 @@ void externalforces (FlagInfo *f_i, Steer *steer)
 
   /* Release top of flag.  */
 
-  if (steer->flag_release[RELEASE_TOP]==0)
+  if (f_i->flag_release[RELEASE_TOP]==0)
     {   f_i->fxyz [       (SIZEX*(SIZEY-1))] = 0.0;
     f_i->fxyz [f_i->yoff + (SIZEX*(SIZEY-1))] = 0.0;
     f_i->fxyz [f_i->zoff + (SIZEX*(SIZEY-1))] = 0.0; 
@@ -592,7 +592,7 @@ void init_sqrt (FlagInfo *f_i)
 
 /**************************************************************************/
 
-void init_flag (FlagInfo *f_i, Steer *steer)
+void init_flag (FlagInfo *f_i)
 {
   int i,xc;
   double x,y;
@@ -619,13 +619,13 @@ void init_flag (FlagInfo *f_i, Steer *steer)
 	  {x++;}
     }
 
-  steer->flag_release [RELEASE_TOP]    = 0;
-  steer->flag_release [RELEASE_BOTTOM] = 0;
+  f_i->flag_release [RELEASE_TOP]    = 0;
+  f_i->flag_release [RELEASE_BOTTOM] = 0;
 }
 
 /**************************************************************************/
 
-void createflag (FlagInfo *f_i, Steer *steer)
+void createflag (FlagInfo *f_i)
 {
   int     ix, iy;	/* Flag Vertex Indices  */
   int     index;	/* Vertex Location Index  */
@@ -656,7 +656,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
   index = 0;
 
-  if (steer->flag_color == COLOR_TEXTURE) 
+  if (f_i->flag_color == COLOR_TEXTURE) 
     {
       for (iy=0;  iy < SIZEY;  ++iy) 
 	{
@@ -680,7 +680,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
   index = 0;
 
-  if (steer->flag_color == COLOR_SOLID) 
+  if (f_i->flag_color == COLOR_SOLID) 
     {
       for (iy=0;  iy < SIZEY;  ++iy) 
 	{
@@ -698,7 +698,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
   /* Color is flag force magnitude, unnormalized  */
   index = 0;
-  if (steer->flag_color == COLOR_FORCEMAG)
+  if (f_i->flag_color == COLOR_FORCEMAG)
     {
       for (iy=0;  iy < SIZEY;  ++iy) 
 	{
@@ -748,7 +748,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 	    } else {
 
 
-	      if (steer->flag_color == COLOR_VELOCITY)
+	      if (f_i->flag_color == COLOR_VELOCITY)
 		{
 		  intensity = (float)(f_i->vxyz[index] * 1.5);
 		  if (intensity < 0.0) intensity = -intensity;
@@ -766,7 +766,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
 		}
 	      /* Color is flag forces  */
-	      else if (steer->flag_color == COLOR_FORCE)
+	      else if (f_i->flag_color == COLOR_FORCE)
 		{
 		  intensity = (float)(f_i->fxyz[index] * 10.0);
 		  if (intensity < 0.0) intensity = -intensity;
@@ -795,7 +795,7 @@ void createflag (FlagInfo *f_i, Steer *steer)
 
 /**************************************************************************/
 
-void recreateflag (FlagInfo *f_i, Steer *steer)
+void recreateflag (FlagInfo *f_i)
 {
   int     ix, iy;	/* Flag Vertex Indices  */
   int     index;	/* Vertex Location Index  */
@@ -819,7 +819,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 
   index = 0;
 
-  if (steer->flag_color == COLOR_TEXTURE) {
+  if (f_i->flag_color == COLOR_TEXTURE) {
 
     for(iy=0;  iy < SIZEY;  ++iy)
       {
@@ -840,7 +840,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 
   index = 0;
 
-  if (steer->flag_color == COLOR_SOLID) {
+  if (f_i->flag_color == COLOR_SOLID) {
 
     for (iy=0;  iy < SIZEY;  ++iy) 
       {
@@ -856,7 +856,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 
   /* Color is flag force magnitude, unnormalized  */
   index = 0;
-  if (steer->flag_color == COLOR_FORCEMAG)
+  if (f_i->flag_color == COLOR_FORCEMAG)
     {
       for (iy=0;  iy < SIZEY;  ++iy) 
 	{
@@ -905,7 +905,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 	    } else {
 
 
-	      if (steer->flag_color == COLOR_VELOCITY)
+	      if (f_i->flag_color == COLOR_VELOCITY)
 		{
 		  intensity = (float)(f_i->vxyz[index] * 1.5);
 		  if (intensity < 0.0) intensity = -intensity;
@@ -923,7 +923,7 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 		  b_data = (float)CLAMP(intensity, 0.0, 1.0);
 		}
 	      /* Color is flag forces  */
-	      else if (steer->flag_color == COLOR_FORCE)
+	      else if (f_i->flag_color == COLOR_FORCE)
 		{
 		  intensity = (float)(f_i->fxyz[index] * 10.0);
 		  if (intensity < 0.0) intensity = -intensity;
@@ -953,9 +953,8 @@ void recreateflag (FlagInfo *f_i, Steer *steer)
 /**************************************************************************/
 
 
-void calc_wind(FlagInfo *f_i, Steer *steer)
+void calc_wind(FlagInfo *f_i)
 {
-  f_i->windx = sin((steer->flag_wind[1]+90)* PI /180)*steer->flag_wind[0];
-  f_i->windz = -cos((steer->flag_wind[1]+90)* PI /180)*steer->flag_wind[0];
+  f_i->windx = sin((f_i->wind_direction[1]+90)* PI /180)*f_i->wind_direction[0];
+  f_i->windz = -cos((f_i->wind_direction[1]+90)* PI /180)*f_i->wind_direction[0];
 }
-
