@@ -29,13 +29,17 @@
 ---------------------------------------------------------------------------*/
 
 #include <iostream>
+#include <cstring>
 
 #include "vtkActor.h"
 #include "vtkAppendPolyData.h"
+#include "vtkCallbackCommand.h"
 #include "vtkCellArray.h"
+#include "vtkCommand.h"
 #include "vtkCylinderSource.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleSwitch.h"
+#include "vtkLookupTable.h"
 #include "vtkPNGReader.h"
 #include "vtkPointData.h"
 #include "vtkPoints.h"
@@ -46,20 +50,41 @@
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
+#include "vtkScalarBarActor.h"
 #include "vtkSphereSource.h"
+#include "vtkTextActor.h"
+#include "vtkTextProperty.h"
 #include "vtkTexture.h"
+
+#include "flag-viz.h"
 
 #define FLAG_IMAGE "reg-flag.png"
 
-void read_flag_file(char*, vtkPolyData*);
+void read_flag_file(CallbackData*);
+void keyPressCallback(vtkObject*, unsigned long, void*, void*);
 
 int main(int argc, char* argv[]) {
 
+  int found_data = 0;
   vtkPolyData* flag = vtkPolyData::New();
+  CallbackData* cdata = new CallbackData();
 
   // sort out arguments and create flag
-  if(argc == 2) {
-    read_flag_file(argv[1], flag);
+  if(argc > 2) {
+    found_data = 0;
+  }
+  else if(argc < 2) {
+    found_data = read_directory("./", cdata);
+  }
+  else {
+    found_data = read_directory(argv[1], cdata);
+  }
+
+  if(found_data == 0) {
+    fprintf(stderr, "Usage: %s [directory]\n", argv[0]);
+    fprintf(stderr, "  where directory must contain at least a set of");
+    fprintf(stderr, " files named\n  'vertices-<number>.dat'\n");
+    return 1;
   }
 
   // load RealityGrid logo
@@ -67,6 +92,12 @@ int main(int argc, char* argv[]) {
   png->SetFileName(FLAG_IMAGE);
   vtkTexture* logo = vtkTexture::New();
   logo->SetInputConnection(png->GetOutputPort());
+
+  // set up internal colour table
+  vtkLookupTable* colourTable = vtkLookupTable::New();
+  colourTable->SetHueRange(0.70, 0.0);
+  colourTable->SetRampToLinear();
+  colourTable->Build();
 
   // create pole
   vtkCylinderSource* tube = vtkCylinderSource::New();
@@ -93,6 +124,8 @@ int main(int argc, char* argv[]) {
 
   // mappers
   vtkPolyDataMapper* meshMap = vtkPolyDataMapper::New();
+  meshMap->SetScalarRange(0.0, 0.1);
+  meshMap->SetLookupTable(colourTable);
   meshMap->SetInputConnection(norms->GetOutputPort());
 
   vtkPolyDataMapper* poleMap = vtkPolyDataMapper::New();
@@ -107,10 +140,31 @@ int main(int argc, char* argv[]) {
   poleActor->SetMapper(poleMap);
   poleActor->GetProperty()->SetColor(0.7, 0.7, 0.7);
 
+  // set up scale
+  vtkScalarBarActor* scale = vtkScalarBarActor::New();
+  scale->SetLookupTable(meshMap->GetLookupTable());
+  scale->SetTitle("Legend");
+  scale->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  scale->GetPositionCoordinate()->SetValue(0.1, 0.05);
+  scale->SetOrientationToHorizontal();
+  scale->SetWidth(0.8);
+  scale->SetHeight(0.12);
+
+  // create frame text label
+  vtkTextActor* text = vtkTextActor::New();
+  text->SetInput("Frame: 0");
+  text->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  text->GetPositionCoordinate()->SetValue(0.8, 0.95);
+  text->GetTextProperty()->SetFontSize(24);
+  text->GetTextProperty()->SetFontFamilyToArial();
+  text->GetTextProperty()->BoldOn();
+  text->GetTextProperty()->ItalicOn();
+
   // set up renderer
   vtkRenderer* renderer = vtkRenderer::New();
   renderer->AddActor(meshActor);
   renderer->AddActor(poleActor);
+  renderer->AddActor2D(text);
   renderer->SetBackground(0.1, 0.2, 0.4);
 
   // set up window
@@ -127,49 +181,92 @@ int main(int argc, char* argv[]) {
   reni->SetInteractorStyle(interactorStyle);
   reni->Initialize();
 
+  // set up callback data
+  cdata->flag = flag;
+  cdata->flagActor = meshActor;
+  cdata->scale = scale;
+  cdata->text = text;
+  cdata->renderer = renderer;
+
+  // set up and register callback on the interactor
+  vtkCallbackCommand* callback = vtkCallbackCommand::New();
+  callback->SetCallback(keyPressCallback);
+  callback->SetClientData((void*)cdata);
+  reni->AddObserver(vtkCommand::CharEvent, callback);
+
   // go
+  read_flag_file(cdata);
   renderWindow->Render();
   reni->Start();
 }
 
-void read_flag_file(char* filename, vtkPolyData* data) {
+void read_flag_file(CallbackData* cdata) {
   vtkPoints* points = vtkPoints::New();
   vtkCellArray* strips = vtkCellArray::New();
-  vtkFloatArray* tCoords = vtkFloatArray::New();
+  vtkFloatArray* nodeData = vtkFloatArray::New();
 
-  // try to open input file
-  std::ifstream fin(filename);
-  if(!fin) {
-    std::cerr << "Could not open file: " << filename << std::endl;
+  vtkPolyData* data = cdata->flag;
+  vtkScalarBarActor* scale = cdata->scale;
+  vtkActor* flagActor = cdata->flagActor;
+  vtkRenderer* renderer = cdata->renderer;
+  bool haveNodedata = (cdata->nodesfiles != NULL) ? true : false;
+
+  // try to open and read vertices file
+  char* vfilename = cdata->vertsfiles[cdata->step];
+  std::ifstream vfin(vfilename);
+  if(!vfin) {
+    std::cerr << "Could not open vertices file: " << vfilename << std::endl;
     exit(1);
   }
 
   // get flag dimensions
-  int xDim, yDim;
-  fin >> xDim >> yDim;
+  int xDim, yDim, dDim;
+  vfin >> xDim >> yDim;
   int numPoints = xDim * yDim;
 
   // get points
   points->Allocate(numPoints);
-  tCoords->SetNumberOfComponents(2);
-  tCoords->SetNumberOfTuples(numPoints);
 
   float x, y, z;
-  float tiIncr = 1.0 / (xDim - 1);
-  float tjIncr = 1.0 / (yDim - 1);
-  float coord[2];
-  int index;
 
   for(int j = 0; j < yDim; j++) {
     for(int i = 0; i < xDim; i++) {
-      fin >> x >> y >> z;
-      index = points->InsertNextPoint(x, y, z);
-      coord[0] = (tiIncr * i);
-      coord[1] = (tjIncr * j);
-      tCoords->InsertTuple(index, coord);
+      vfin >> x >> y >> z;
+      points->InsertNextPoint(x, y, z);
     }
   }
-  fin.close();
+  vfin.close();
+
+  // try to open and read nodedata file
+  if(haveNodedata) {
+    char* nfilename = cdata->nodesfiles[cdata->step];
+    std::ifstream nfin(nfilename);
+    if(!nfin) {
+      std::cerr << "Could not open vertices file: " << nfilename << std::endl;
+      exit(1);
+    }
+
+    // throw away x and y dimensions (we know them)
+    int xThrow, yThrow;
+    float tuple[3];
+    nfin >> xThrow >> yThrow >> dDim;
+
+    nodeData->SetNumberOfComponents(dDim);
+    nodeData->SetNumberOfTuples(numPoints);
+
+    for(int i = 0; i < numPoints; i++) {
+      for(int j = 0; j < dDim; j++) {
+	nfin >> tuple[j];
+      }
+
+      nodeData->InsertTuple(i, tuple);
+    }
+    nfin.close();
+  }
+  else {
+    // if no nodedata then we set this zero
+    dDim = 0;
+  }
 
   // create strips
   for(int i = 1; i < xDim; i++) {
@@ -183,11 +280,60 @@ void read_flag_file(char* filename, vtkPolyData* data) {
   // build flag
   data->SetPoints(points);
   data->SetStrips(strips);
-  data->GetPointData()->SetTCoords(tCoords);
+
+  switch(dDim) {
+  case 0:
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetScalars(NULL);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(0.7, 0.7, 0.2);
+    break;
+  case 1:
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetScalars(nodeData);
+    scale->SetTitle("Force (magnitude)");
+    renderer->AddActor(scale);
+    break;
+  case 2:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(nodeData);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(1.0, 1.0, 1.0);
+    break;
+  default:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetVectors(nodeData);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(1.0, 1.0, 1.0);
+    break;
+  }
 
   // clean up
   points->Delete();
   strips->Delete();
-  tCoords->Delete();
+  nodeData->Delete();
 }
 
+void keyPressCallback(vtkObject* obj, unsigned long eid, void* cd, void* calld) {
+  vtkRenderWindowInteractor* reni = vtkRenderWindowInteractor::SafeDownCast(obj);
+  CallbackData* cdata = (CallbackData*) cd;
+  char frame[20];
+
+  char* sym = reni->GetKeySym();
+  if((strncmp(sym, "Up", 2) == 0) || (strncmp(sym, "Ri", 2) == 0)) {
+    cdata->step < cdata->max_step ? cdata->step++ : cdata->step = cdata->max_step;
+  }
+
+  if((strncmp(sym, "Do", 2) == 0) || (strncmp(sym, "Le", 2) == 0)) {
+    cdata->step > 0 ? cdata->step-- : cdata->step = 0;
+  }
+
+  read_flag_file(cdata);
+  sprintf(frame, "Frame: %d", cdata->step);
+  cdata->text->SetInput(frame);
+  reni->Render();
+}

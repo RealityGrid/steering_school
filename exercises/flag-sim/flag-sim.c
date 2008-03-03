@@ -80,6 +80,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 /* Search for string 'NOTE' for efficiancy notes 
  *
@@ -103,8 +104,8 @@ int main(int argc, char** argv) {
 
   int finished = REG_FALSE;
 #else
-  int main_loop_max = 2000;
-  int output_freq = 200;
+  int main_loop_max = 10000;
+  int output_freq = 100;
 #endif
 
   FlagInfo flag_info;
@@ -180,7 +181,7 @@ int main(int argc, char** argv) {
     output_freq = atoi(argv[3]);
   }
   else {
-    output_freq = (int) main_loop_max / 10; 
+    output_freq = (int) main_loop_max / 100; 
   }
 #endif
 
@@ -260,9 +261,10 @@ int main(int argc, char** argv) {
       FILE* f_nodedata;
       char filename1[1000];
       char filename2[1000];
+      int filename_pad = floor(log10(main_loop_max)) + 1;
 
       /* open vertices file and write */
-      sprintf(filename1, "vertices-%d.dat", main_loop_count);
+      sprintf(filename1, "vertices-%0*2$d.dat", main_loop_count, filename_pad);
       if((f_vertices = fopen(filename1, "w")) == NULL) {
 	printf("unable to open %s\n", filename1);
 	exit(EXIT_FAILURE);
@@ -283,7 +285,7 @@ int main(int argc, char** argv) {
       
       if(data_vec_length > 0) {
 	/* open nodedata file and write */
-	sprintf(filename2, "nodedata-%d.dat", main_loop_count);
+	sprintf(filename2, "nodedata-%0*2$d.dat", main_loop_count, filename_pad);
 	if((f_nodedata = fopen(filename2, "w")) == NULL) {
 	  printf("unable to open %s\n", filename2);
 	  exit(EXIT_FAILURE);

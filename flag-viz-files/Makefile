@@ -36,8 +36,8 @@ LDFLAGS=${VTK_LINK}
 
 # build the objects and link into the executable...
 
-${TARGET}: flag-viz.cpp
-	${CXX} -o ${TARGET} flag-viz.cpp ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS}
+${TARGET}: flag-viz.cpp flag-viz-utils.cpp flag-viz.h
+	${CXX} -o ${TARGET} flag-viz.cpp flag-viz-utils.cpp ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS}
 
 distclean:	clean
 	rm -f *~
