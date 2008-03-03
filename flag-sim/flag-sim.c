@@ -144,7 +144,7 @@ int main(int argc, char** argv) {
   flag_info.windz = 0.0;
   flag_info.flag_release[RELEASE_TOP] = 0;
   flag_info.flag_release[RELEASE_BOTTOM] = 0;
-  flag_info.flag_color = COLOR_TEXTURE;
+  flag_info.flag_color = COLOR_SOLID;
 
   for(n = 0; n < flag_info.len3; n++) {
     flag_info.Vertices[n] = 0.0;
@@ -242,11 +242,12 @@ int main(int argc, char** argv) {
   /* get run time and output frequency from command args */
   if(argc > 4) {
     fprintf(stderr, "Usage: %s [flag colour] [no. loops] [output freq]", argv[0]);
-    fprintf(stderr, "\n\n  where flag colour can be:\t0 - solid colour,\n");
+    fprintf(stderr, "\n\n  where flag colour can be:");
+    fprintf(stderr, "\t0 - solid colour (default),\n");
     fprintf(stderr, "\t\t\t\t1 - coloured by velocity,\n");
     fprintf(stderr, "\t\t\t\t2 - coloured by force,\n");
     fprintf(stderr, "\t\t\t\t3 - coloured by force magnitude,\n");
-    fprintf(stderr, "\t\t\t\t4 - texture mapped (default).\n");
+    fprintf(stderr, "\t\t\t\t4 - texture mapped.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -289,8 +290,10 @@ int main(int argc, char** argv) {
     break;
   case COLOR_VELOCITY:
   case COLOR_FORCE:
-  case COLOR_SOLID:
     data_vec_length = 3;
+    break;
+  case COLOR_SOLID:
+    data_vec_length = 0;
     break;
   }
 
@@ -360,8 +363,10 @@ int main(int argc, char** argv) {
 	  break;
 	case COLOR_VELOCITY:
 	case COLOR_FORCE:
-	case COLOR_SOLID:
 	  data_vec_length = 3;
+	  break;
+	case COLOR_SOLID:
+	  data_vec_length = 0;
 	  break;
 	}
       }
@@ -404,10 +409,12 @@ int main(int argc, char** argv) {
 					 flag_info.Vertices);
 
 		data_count = flag_info.sizex * flag_info.sizey * data_vec_length;
-		status = Emit_data_slice(iohandle,
-					 REG_FLOAT,
-					 data_count,
-					 flag_info.NodeData);
+		if(data_vec_length > 0) {
+		  status = Emit_data_slice(iohandle,
+					   REG_FLOAT,
+					   data_count,
+					   flag_info.NodeData);
+		}
 
 		Emit_stop(&iohandle);
 	      }
@@ -435,17 +442,12 @@ int main(int argc, char** argv) {
       char filename1[1000];
       char filename2[1000];
 
+      /* open vertices file and write */
       sprintf(filename1, "vertices-%d.dat", main_loop_count);
       if((f_vertices = fopen(filename1, "w")) == NULL) {
 	printf("unable to open %s\n", filename1);
 	exit(EXIT_FAILURE);
       }
-      sprintf(filename2, "nodedata-%d.dat", main_loop_count);
-      if((f_nodedata = fopen(filename2, "w")) == NULL) {
-	printf("unable to open %s\n", filename2);
-	exit(EXIT_FAILURE);
-      }
-
       fprintf(f_vertices, "%d %d\n", SIZEX, SIZEY);
       j = 0;
       for(n = 0; n < (SIZEX * SIZEY); n++) {
@@ -455,25 +457,33 @@ int main(int argc, char** argv) {
 	}
 	fprintf(f_vertices, "\n");
       }
-      
-      fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, data_vec_length);
-      j = 0;
-      for(n = 0; n < (SIZEX * SIZEY); n++) {
-	for(i = 0; i < data_vec_length; i++) {
-	  fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
-	  j++;
-	}
-	fprintf(f_nodedata, "\n");
-      }
-
       if(fclose(f_vertices) == 1) {
 	printf("unable to close %s\n", filename1);
 	exit(EXIT_FAILURE);
       }
-      if(fclose(f_nodedata) == 1) {
-	printf("unable to close %s\n", filename2);
-	exit(EXIT_FAILURE);
+      
+      if(data_vec_length > 0) {
+	/* open nodedata file and write */
+	sprintf(filename2, "nodedata-%d.dat", main_loop_count);
+	if((f_nodedata = fopen(filename2, "w")) == NULL) {
+	  printf("unable to open %s\n", filename2);
+	  exit(EXIT_FAILURE);
+	}
+	fprintf(f_nodedata, "%d %d %d\n", SIZEX, SIZEY, data_vec_length);
+	j = 0;
+	for(n = 0; n < (SIZEX * SIZEY); n++) {
+	  for(i = 0; i < data_vec_length; i++) {
+	    fprintf(f_nodedata, "%f ", flag_info.NodeData[j]);
+	    j++;
+	  }
+	  fprintf(f_nodedata, "\n");
+	}
+	if(fclose(f_nodedata) == 1) {
+	  printf("unable to close %s\n", filename2);
+	  exit(EXIT_FAILURE);
+	}
       }
+
     }
 #endif /* NO_STEERING */
   }

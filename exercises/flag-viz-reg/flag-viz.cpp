@@ -39,6 +39,7 @@
 #include "vtkCylinderSource.h"
 #include "vtkFloatArray.h"
 #include "vtkInteractorStyleSwitch.h"
+#include "vtkLookupTable.h"
 #include "vtkMultiThreader.h"
 #include "vtkMutexLock.h"
 #include "vtkObject.h"
@@ -52,6 +53,7 @@
 #include "vtkRenderer.h"
 #include "vtkRenderWindow.h"
 #include "vtkRenderWindowInteractor.h"
+#include "vtkScalarBarActor.h"
 #include "vtkSphereSource.h"
 #include "vtkTexture.h"
 
@@ -62,6 +64,9 @@
 // thread data structure
 struct ThreadData {
   vtkPolyData* flag;
+  vtkScalarBarActor* scale;
+  vtkActor* flagActor;
+  vtkRenderer* renderer;
   vtkRenderWindowInteractor* interactor;
 };
 
@@ -72,8 +77,7 @@ vtkMutexLock* renderLock;
 vtkMutexLock* loopLock;
 sem_t regDone;
 
-void read_flag_file(char*, vtkPolyData*);
-void create_flag(int, int, float*, vtkPolyData*);
+void create_flag(int*, float*, float*, ThreadData*);
 void renderCallback(vtkObject*, unsigned long, void*, void*);
 void* regLoop(void*);
 
@@ -86,6 +90,12 @@ int main(int argc, char* argv[]) {
   png->SetFileName(FLAG_IMAGE);
   vtkTexture* logo = vtkTexture::New();
   logo->SetInputConnection(png->GetOutputPort());
+
+  // set up internal colour table
+  vtkLookupTable* colourTable = vtkLookupTable::New();
+  colourTable->SetHueRange(0.70, 0.0);
+  colourTable->SetRampToLinear();
+  colourTable->Build();
 
   // create pole
   vtkCylinderSource* tube = vtkCylinderSource::New();
@@ -112,6 +122,8 @@ int main(int argc, char* argv[]) {
 
   // mappers
   vtkPolyDataMapper* meshMap = vtkPolyDataMapper::New();
+  meshMap->SetScalarRange(0.0, 0.1);
+  meshMap->SetLookupTable(colourTable);
   meshMap->SetInputConnection(norms->GetOutputPort());
 
   vtkPolyDataMapper* poleMap = vtkPolyDataMapper::New();
@@ -125,6 +137,16 @@ int main(int argc, char* argv[]) {
   vtkActor* poleActor = vtkActor::New();
   poleActor->SetMapper(poleMap);
   poleActor->GetProperty()->SetColor(0.7, 0.7, 0.7);
+
+  // set up scale
+  vtkScalarBarActor* scale = vtkScalarBarActor::New();
+  scale->SetLookupTable(meshMap->GetLookupTable());
+  scale->SetTitle("Legend");
+  scale->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+  scale->GetPositionCoordinate()->SetValue(0.1, 0.05);
+  scale->SetOrientationToHorizontal();
+  scale->SetWidth(0.8);
+  scale->SetHeight(0.12);
 
   // set up renderer
   vtkRenderer* renderer = vtkRenderer::New();
@@ -160,6 +182,9 @@ int main(int argc, char* argv[]) {
 
   ThreadData* td = new ThreadData();
   td->flag = flag;
+  td->scale = scale;
+  td->flagActor = meshActor;
+  td->renderer = renderer;
   td->interactor = reni;
   thread->SpawnThread(regLoop, td);
 
@@ -176,114 +201,89 @@ int main(int argc, char* argv[]) {
   sem_wait(&regDone);
 }
 
-void read_flag_file(char* filename, vtkPolyData* data) {
+void create_flag(int* dims, float* coords, float* nodedata, ThreadData* td) {
   vtkPoints* points = vtkPoints::New();
   vtkCellArray* strips = vtkCellArray::New();
-  vtkFloatArray* tCoords = vtkFloatArray::New();
+  vtkFloatArray* nodeData = vtkFloatArray::New();
 
-  // try to open input file
-  std::ifstream fin(filename);
-  if(!fin) {
-    std::cerr << "Could not open file: " << filename << std::endl;
-    exit(1);
-  }
+  vtkPolyData* data = td->flag;
+  vtkScalarBarActor* scale = td->scale;
+  vtkActor* flagActor = td->flagActor;
+  vtkRenderer* renderer = td->renderer;
 
   // get flag dimensions
-  int xDim, yDim;
-  fin >> xDim >> yDim;
-  int numPoints = xDim * yDim;
+  int numPoints = dims[0] * dims[1];
 
   // get points
   points->Allocate(numPoints);
-  tCoords->SetNumberOfComponents(2);
-  tCoords->SetNumberOfTuples(numPoints);
-
-  float x, y, z;
-  float tiIncr = 1.0 / (xDim - 1);
-  float tjIncr = 1.0 / (yDim - 1);
-  float coord[2];
-  int index;
-
-  for(int j = 0; j < yDim; j++) {
-    for(int i = 0; i < xDim; i++) {
-      fin >> x >> y >> z;
-      index = points->InsertNextPoint(x, y, z);
-      coord[0] = (tiIncr * i);
-      coord[1] = (tjIncr * j);
-      tCoords->InsertTuple(index, coord);
-    }
-  }
-  fin.close();
-
-  // create strips
-  for(int i = 1; i < xDim; i++) {
-    strips->InsertNextCell(yDim * 2);
-    for(int j = 0; j < yDim; j++) {
-      strips->InsertCellPoint((xDim * j) + (i - 1));
-      strips->InsertCellPoint((xDim * j) + i);
-    }
+  if(dims[2] > 0) {
+    nodeData->SetNumberOfComponents(dims[2]);
+    nodeData->SetNumberOfTuples(numPoints);
   }
 
-  // build flag
-  data->SetPoints(points);
-  data->SetStrips(strips);
-  data->GetPointData()->SetTCoords(tCoords);
-
-  // clean up
-  points->Delete();
-  strips->Delete();
-  tCoords->Delete();
-}
-
-void create_flag(int xDim, int yDim, float* coords, vtkPolyData* data) {
-  vtkPoints* points = vtkPoints::New();
-  vtkCellArray* strips = vtkCellArray::New();
-  vtkFloatArray* tCoords = vtkFloatArray::New();
-
-  // get flag dimensions
-  int numPoints = xDim * yDim;
-
-  // get points
-  points->Allocate(numPoints);
-  tCoords->SetNumberOfComponents(2);
-  tCoords->SetNumberOfTuples(numPoints);
-
-  float tiIncr = 1.0 / (xDim - 1);
-  float tjIncr = 1.0 / (yDim - 1);
-  float coord[2];
   int index;
   int c = 0;
 
-  for(int j = 0; j < yDim; j++) {
-    for(int i = 0; i < xDim; i++) {
+  for(int j = 0; j < dims[1]; j++) {
+    for(int i = 0; i < dims[0]; i++) {
       index = points->InsertNextPoint(coords[c++], coords[c++], coords[c++]);
-      coord[0] = (tiIncr * i);
-      coord[1] = (tjIncr * j);
-      tCoords->InsertTuple(index, coord);
+      if(dims[2] > 0)
+	nodeData->InsertTuple(index, &nodedata[(index * dims[2])]);
     }
   }
 
   // create strips
-  for(int i = 1; i < xDim; i++) {
-    strips->InsertNextCell(yDim * 2);
-    for(int j = 0; j < yDim; j++) {
-      strips->InsertCellPoint((xDim * j) + (i - 1));
-      strips->InsertCellPoint((xDim * j) + i);
+  for(int i = 1; i < dims[0]; i++) {
+    strips->InsertNextCell(dims[1] * 2);
+    for(int j = 0; j < dims[1]; j++) {
+      strips->InsertCellPoint((dims[0] * j) + (i - 1));
+      strips->InsertCellPoint((dims[0] * j) + i);
     }
   }
 
   // build flag
   data->SetPoints(points);
   data->SetStrips(strips);
-  data->GetPointData()->SetTCoords(tCoords);
+
+  switch(dims[2]) {
+  case 0:
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetScalars(NULL);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(0.7, 0.7, 0.2);
+    break;
+  case 1:
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetScalars(nodeData);
+    scale->SetTitle("Force (magnitude)");
+    renderer->AddActor(scale);
+    break;
+  case 2:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetVectors(NULL);
+    data->GetPointData()->SetTCoords(nodeData);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(1.0, 1.0, 1.0);
+    break;
+  default:
+    data->GetPointData()->SetScalars(NULL);
+    data->GetPointData()->SetTCoords(NULL);
+    data->GetPointData()->SetVectors(nodeData);
+    renderer->RemoveActor(scale);
+    flagActor->GetProperty()->SetColor(1.0, 1.0, 1.0);
+    break;
+  }
 
   // clean up
   points->Delete();
   strips->Delete();
-  tCoords->Delete();
+  nodeData->Delete();
 }
 
 void renderCallback(vtkObject* obj, unsigned long eid, void* cd, void* calld) {
+  vtkRenderWindowInteractor* reni = vtkRenderWindowInteractor::SafeDownCast(obj);
   bool render;
 
   renderLock->Lock();
@@ -292,7 +292,7 @@ void renderCallback(vtkObject* obj, unsigned long eid, void* cd, void* calld) {
 
   if(render) {
     // render via the interactor...
-    ((vtkRenderWindowInteractor*) obj)->Render();
+    reni->Render();
 
     // reset reRender...
     renderLock->Lock();
@@ -301,7 +301,7 @@ void renderCallback(vtkObject* obj, unsigned long eid, void* cd, void* calld) {
   }
 
   // reset the timer on the interactor...
-  ((vtkRenderWindowInteractor*) obj)->CreateTimer(VTKI_TIMER_UPDATE);
+  reni->CreateTimer(VTKI_TIMER_UPDATE);
 }
 
 void* regLoop(void* userData) {
@@ -346,17 +346,20 @@ void* regLoop(void* userData) {
   int dataCount;
 
   // place holders for data
-  int dims[2];
+  int dims[3];
   float* coords = NULL;
+  float* nodedata = NULL;
 
   // go into loop until told to finish
   while(!done) {
     // sleep for 0.2 seconds
     usleep(100000);
 
+    ///////////////////////////////////////////////////
     //
     // Add steering control and data reading stuff here
     //
+    ///////////////////////////////////////////////////
 
     // tell the interactor to render if needs be
     if(needRefresh) {
