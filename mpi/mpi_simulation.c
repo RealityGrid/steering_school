@@ -37,7 +37,28 @@
 
 #include "ReG_Steer_Appside.h"
 
-#include "mpi_simulation.h"
+/*
+ * An example data structure for broadcasting all steering
+ * infomation in one call as opposed to many separate ones.
+ * See the create_mpi_datatype method below for how to use
+ * it in an MPI_Bcast.
+ */
+struct _steer_params {
+  /* steering */
+  int    status;
+  int    num_rcvd_cmds;
+  int    rcvd_cmds[REG_MAX_NUM_STR_CMDS];
+  int    num_params_changed;  
+
+  /* monitored */
+  float temperature;
+
+  /* steered */
+  int sleep_time;
+  float temp_increment;
+};
+
+typedef struct _steer_params steer_params;
 
 /* global variables */
 int verbose = 1;
@@ -78,7 +99,7 @@ int main(int argc, char** argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   /* Initialise simulation */
-  if(argc == 2) {
+  if(argc > 1) {
     if(strncmp(argv[1], "-q", 2) == 0) {
       verbose = 0;
     }
@@ -258,23 +279,42 @@ int main(int argc, char** argv) {
 
 }
 
+/*
+ * This method creates an MPI derived datatype for steer_params.
+ * This is needed so that steer_params can be passed around by
+ * MPI_Bcast in one go as opposed to many individual calls.
+ */
 void create_mpi_datatype(MPI_Datatype* datatype) {
+  int i;
   int type_size;
-  int count = PARAMS_COUNT;
-  int blocklengths[PARAMS_COUNT] = {1, 1, REG_MAX_NUM_STR_CMDS, 1, 1, 1, 1, 1};
-  MPI_Datatype types[PARAMS_COUNT] = {MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_REAL, MPI_INTEGER, MPI_REAL, MPI_UB};
-  MPI_Aint displacements[PARAMS_COUNT];
+  int count = 7;
+  int blocklengths[7] = {1, 1, REG_MAX_NUM_STR_CMDS, 1, 1, 1, 1};
+  MPI_Datatype types[7] = {MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, MPI_REAL, MPI_INTEGER, MPI_REAL};
+  MPI_Aint displacements[7];
 
-  displacements[0] = 0;
-  for(int i = 1; i < count; i++) {
-    MPI_Type_size(types[i - 1], &type_size);
-    displacements[i] = displacements[i - 1] + (type_size * blocklengths[i - 1]); 
+  /* compute displacements */
+  steer_params sp;
+  MPI_Address(&sp.status, &displacements[0]);
+  MPI_Address(&sp.num_rcvd_cmds, &displacements[1]);
+  MPI_Address(&sp.rcvd_cmds, &displacements[2]);
+  MPI_Address(&sp.num_params_changed, &displacements[3]);
+  MPI_Address(&sp.temperature, &displacements[4]);
+  MPI_Address(&sp.sleep_time, &displacements[5]);
+  MPI_Address(&sp.temp_increment, &displacements[6]);
+
+  for(i = 6; i >= 0; i--) {
+    displacements[i] -= displacements[0];
   }
   
   MPI_Type_struct(count, blocklengths, displacements, types, datatype);
   MPI_Type_commit(datatype);
 }
 
+/*
+ * This method is simply used for outputing debug messages.
+ * It can be turned on or off at runtime via the verbose flag
+ * and it can be set to output on all ranks or just rank 0.
+ */
 void output(int proc, const char* format, ...) {
   va_list arg_list;
 
