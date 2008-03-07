@@ -1,5 +1,5 @@
 # -------------------------------------------------------------------------
-# (C) Copyright 2007, University of Manchester, United Kingdom,
+# (C) Copyright 2007, 2008, University of Manchester, United Kingdom,
 # all rights reserved.
 #
 # This software was developed by the RealityGrid project
