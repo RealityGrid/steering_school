@@ -1,0 +1,44 @@
+Exercise 3
+
+Instrumenting a MPI code for steering.
+
+Source: mpi_simulation.c
+
+Learning objectives:
+ * Practice using the RealityGrid API.
+ * Learn about the subtleties of steering an HPC code.
+
+Prerequisites:
+ * Have done exercise 1
+ * MPI - but it is really simple MPI.
+
+------------------------------------------------------------------------------
+
+This is largely a re-run of exercise 1 with a couple of exceptions:
+ * We won't be creating IOTypes or emitting any data.
+ * MPI is involved.
+
+!! The main thing to remember is that any calls to the steering library
+!! should be done on just one process. By convention we use rank zero in
+!! this example.
+
+The above point has an important consequence: The data returned by
+calls to the steering API will only be present on rank 0. In some
+cases this will not matter but you will generally at least need to
+broadcast the return status of calls to others processes.
+
+I have provided a method called 'output' to print messages to stdout:
+
+void output(int proc, const char* format, ...);
+
+It is similar to printf but has an extra parameter, proc, that does the
+following:
+ * If proc == 0 the message is only output by process 0.
+ * If proc != 0 the message is output by all processes.
+
+!! OPTIONAL EXTRA !!
+
+Doing a lot of individual broadcasts to pass around single data items
+is inefficient. A good optimization would be to create a structure to
+hold a set of steered parameters and pass this in one broadcast. Try
+this!

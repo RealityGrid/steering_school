@@ -1,0 +1,51 @@
+Exercise 2
+
+Instrumenting a visualization code for on-line visualization.
+
+Source: flag-viz.cpp
+
+Learning objectives:
+ * Learn about receiving data through a RealityGrid socket for "on-line"
+   visualization.
+
+Prerequisites:
+ * Have done exercise 1
+
+------------------------------------------------------------------------------
+
+   All the set up and clean up of the steering library is already done
+   for you. Even the IOType is registered.
+
+   Add a call to Steering_control (right near the bottom of the
+   code). You need to handle two different commands: REG_STR_STOP and
+   that of the handle of the IOType.
+
+   If you receive REG_STR_STOP simply call:
+   td->interactor->ExitCallback();
+
+   If you receive the handle of the IOType you need to use the data consuming
+   methods provided by the steering library. These are used as follows:
+
+   Consume_start
+   Consume_data_slice_header - tells you what sort of data to expect and
+			       how much of it.
+   <allocate space for data>
+   Consume_data_slice
+   Consume_stop
+
+   Consume_data_slice_header and Consume_data_slice should always be called
+   in that order, in pairs, as many times as you are expecting data slices.
+
+   Recall that your first slice will be just three integers (pass in the
+   variable 'dims' for this) and your second slice will be the size of the
+   flag so allocate enough memory and pass in the variable 'coords' for this.
+
+   If you are also outputting node data from flag-sim you will need to test
+   the value of dims[2] to see if you need to consume another slice. If so
+   use the variable 'nodedata' to store it in.
+
+   If you have consumed *anything* from the IOType you need to rebuild the
+   flag structure with:
+   create_flag(dims, coords, nodedata, td);
+   and then tell the application to refresh its view with:
+   needRefresh = true;

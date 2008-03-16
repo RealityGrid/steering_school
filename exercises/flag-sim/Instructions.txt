@@ -1,0 +1,253 @@
+Exercise 1
+
+Instrumenting a simulation code for steering
+
+Source: flag-sim.c
+
+Learning objectives:
+ * Familiarize yourself with the flag-sim example code.
+ * Learn about the various parts of the RealityGrid Steering API (the API):
+   * Set up and finalization.
+   * Registering steering commands.
+   * Registering parameters for monitoring and steering.
+   * Outputting data through a RealityGrid socket for "on-line" visualization.
+
+Prerequisites:
+ * Basic Unix/Linux familiarity.
+ * C
+
+------------------------------------------------------------------------------
+
+0) Before starting, here is how this is going to work.
+   We will be using "file-based" steering for these exercises. This
+   means that steering messages will be passed between simulation and
+   steering client via files. This is a useful tool for debugging that
+   avoids the need to set up full grid middleware each time the
+   simulation is run.
+
+   To set up the environment required for these exercises simply run
+   the following commands:
+   $ module add steering-school
+   $ mkdir -p ~/tmp/reg/sim
+   $ mkdir -p ~/tmp/reg/viz
+
+   The first loads all the required compilers and libraries and the
+   next two create a couple of directories for the steering messages
+   to be exchanged in.
+
+   Finally we need to tell the steering library where our message
+   exchange directory is with:
+   $ export REG_STEER_DIRECTORY=~/tmp/reg/sim
+
+   This set up (apart from the creation of the directories) needs to
+   be done for each new terminal that is opened.
+
+The flag-sim example is a simple code to simulate how a cloth flag is
+affected by a wind. Parameters such as wind strength, wind direction,
+flag strength and whether the flag is tethered at the top and bottom
+can be altered. It is these parameters that we will be steering.
+
+!! You will need to consult the API documentation while doing these
+!! exercises. It is available at:
+!! http://www.kato.mvc.mcc.ac.uk/doc/RealityGrid/reg_steer_lib/
+
+1) Compile and run flag-sim without any steering:
+ i)  Type 'make no-steering' and an executable called flag-sim is created.
+ ii) Run this (./flag-sim) and a set of output files are created.
+     The output files are called vertices-<timestep>.dat and hold flag mesh
+     vertex data.
+
+2) Visualize this data:
+ i)  In (perhaps) another terminal move into the bin directory.
+ ii) Run flag-viz-files and give the flag-sim directory as the first argument:
+     $ ./flag-viz-files ../exercises/flag-sim/
+     A window will open showing a golden flag. Use the right and left arrow
+     keys to move through the time-step data files.
+
+3) Repeat 1 & 2 with other data output options. In step 1 only vertex data was
+   output but flag-sim can also output data to be visualized at each vertex. To
+   do so, run flag-sim with a parameter:
+   $ ./flag-sim n - where n can be 0 (default), 3 or 4.
+   Now, along with vertices files a set of node-data files are also produced.
+   Run flag-viz-files as in part 2 and this node data will be automatically
+   visualized.
+
+4) Clean everything up so far:
+   $ make distclean
+
+5) Steering library basics.
+   Most commands in the API return an integer representing the return status
+   of the call. The possible return status numbers are defined in
+   ReG_Steer_types.h but the most common are REG_SUCCESS and REG_FAILURE -
+   hopefully you'll see more of the former than the latter. Also defined in
+   ReG_Steer_types.h are REG_TRUE and REG_FALSE which are to be used in the
+   usual way for representing true and false boolean values.
+
+   The header files (eg ReG_Steer_types.h) are in $REG_STEER_HOME/include
+   There are also examples in $REG_STEER_HOME/examples, the most relevant of
+   which for this exercise is mini_app.
+
+   Throughout the rest of this exercise you will be adding code to flag-sim.c
+   There are large comment-blocks to indicate which bits of code should be
+   added where. As well as adding API calls to the code you will be expected
+   to declare and initialize the variables to be passed to those calls.
+
+   When building flag-sim for steering simply type 'make' rather than
+   'make no-steering'.
+
+   flag-sim basics.
+   The flag-sim code comes in two parts: flag-sim.c and flag-utils.c. The
+   actual simulation code is all in flag-utils.c but we won't need to touch
+   any of that - forget it exists. This should hopefully prove that, although
+   steering does require that your source code is altered, changes are
+   fairly superficial.
+
+   flag-sim.c contains the set-up code and main loop and is where we will be
+   adding all our steering changes.
+
+   flag.h contains various definitions and structures. Not least amongst these
+   is the FlagInfo struct that is used to pass data about between the various
+   simulation calls. It is this struct that holds most of the parameters that
+   we will be steering and the data that we will be emitting for on-line
+   visualization.
+
+6) Setting up and finalizing the steering library.
+   To initialize the steering library use the API call: Steering_enable. This
+   call can go anywhere but *must* be the first call to the API.
+   To tell the library to clean up after itself use: Steering_finalize. This
+   call *must* be the last to the API.
+   
+7) Register steering commands and initialize steering with a call to
+   Steering_initialize. The commands you should register are:
+    * REG_STR_STOP - so that we can tell our sim to stop.
+    * REG_STR_PAUSE - so that we can pause our sim.
+   Check the return status before continuing.
+
+8) Register parameters to be steered with calls to Register_param.
+   Parameters we want to register are:
+
+   Param		       Type    Min value Max value
+   ---------------------------------------------------------
+   flag_info.strength	       double  6	 30
+   flag_info.flag_color	       integer 0	 4
+   flag_info.flag_release[0]   integer 0	 1
+   flag_info.flag_release[1]   integer 0	 1
+   flag_info.wind_direction[0] float   0	 1
+   flag_info.wind_direction[1] float   0	 1
+   flag_reset		       integer 0	 1
+
+   Check the return status of the last call to Register_param and exit if
+   it is not success!
+
+9) In the main loop add a call to Steering_control and check its return
+   status. If it's not success simply "continue" to the next loop.
+
+Now there is a lot to do but we can do it in stages:
+
+10)
+   i)   It's a good idea for debugging purposes to detect if there have been
+	any changes to parameters and print a message if there have.
+   ii)	It's also a good idea to do the same if any commands have been
+	received.
+   iii) Hint: the second and fourth parameters to Steering_control return
+	the useful information here!
+
+11)Because more than one command can be returned by Steering_control at any
+   time we need to loop over the list of commands returned in the fifth
+   parameter passed to steering control.
+
+   The steering library handles instances of REG_STR_PAUSE_INTERNAL so we can
+   ignore that but we do need to handle REG_STR_STOP ourselves. In this case
+   case all we actually need to do is set the variable finished to REG_TRUE.
+
+All being well you should now be able to run flag-sim and connect a
+steering client to it:
+   i)  Run flag-sim.
+   ii) In a different terminal run 'steerer' - make sure
+       REG_STEER_DIRECTORY is set.
+   iii)A small window should open. Click on the menu 'Steerer' and
+       choose the first item 'Local attach'.
+   iv) If needs be, navigate to the directory ~/tmp/reg/sim' and click 'OK'
+       The window should get bigger and after a short pause, start showing
+       the steered parameters.
+   v)  Try pausing and resuming the simulation.
+   vi) You can alter the steered parameters but as yet there is no way of
+       telling if this has any effect!
+   vii)Stop the simulation using the button on the steerer window.
+
+Now we need to output data so that we can see the effects of our steering.
+
+12)Firstly we need to register an IOType with the library. IOType is a term
+   we use to refer to a set of data to be output as more than one "sort" of
+   data can be output by each application.
+
+   Use Register_IOType to register an IOType called "flag data" that only
+   emits data (hint: REG_IO_OUT) every 10 time-steps.
+
+   Re-running flag-sim and attaching a steering client now should show
+   an entry in the IOTypes list in the interface.
+
+13)Emitting the data itself appears complicated at first and is difficult
+   to explain so I'll use pseudo-code to help.
+
+   An overview of the data emitting call order is:
+   Emit_start
+   Emit_data_slice - you can do this more than once
+   Emit_stop
+
+   In other words we tell the steering library to open our IO channel, then
+   we send a number of slices of data down it, then we close the channel.
+
+   The simulation should only emit data when told to by steering control.
+   It does this by adding a command to the returned commands list - this
+   command has a value equivalent to the io-handle returned in the fourth
+   parameter passed to Register_IOType. So after the bit of code where you
+   processed the REG_STR_STOP command add some code to do the following:
+
+   For each iotype:
+     if the command == io-handle
+     then
+       Emit_start
+       Emit_data_slice
+       Emit_stop
+
+   As we only have one IOType - the outer loop above can be removed but it
+   is required if there are more than one IOType. For now we want to emit
+   two data slices down our IO channel.
+   
+   The first slice is very small - just three integers - and will be
+   used to pass to the visualization application the dimensions of the
+   data in the next slice. The values of this slice will be
+   flag_info.sizex, flag_info.sizey and 0 (zero) - the zero is a
+   placeholder for the next step. Put these values into an array and
+   emit them with Emit_data_slice.
+
+   The second slice will be the array of flag vertices created by the
+   simulation. Emit flag_info.Vertices (which is float data) to send them.
+
+You should now be able to run flag-sim and have it output its data to
+a visualization application:
+   i)  Run flag-viz as before but make a note of the port number it creates
+       the listener on.
+   ii) In another terminal we will run a pre-built visualization application.
+       Make sure the terminal is set up like before but this time set
+       REG_STEER_DIRECTORY to ~/tmp/reg/viz
+       Also, set the following environment:
+       $ export REG_CONNECTOR_PORT=<listener port from above>
+       $ export REG_CONNECTOR_HOSTNAME=<hostname of node you're working on>
+
+       Then go into the top-level bin directory of these tutorials and run
+       $ ./flag-viz-reg
+
+       You should see a waving golden flag!
+   iii)Steer the parameters and see the effect they have.
+
+!! OPTIONAL EXTRA !! - You should probably do this bit *after* exercise 2.
+
+Extend the data output section to output node-data.
+Hints:
+ * The data is at flag_info.NodeData.
+ * You need to replace that zero in the first slice with the vector length of
+   the node data.
+ * data_vec_length length holds this value but it can change if the user
+   steers the simulation.
