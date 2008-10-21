@@ -28,30 +28,17 @@
 # Author: Robert Haines
 # -------------------------------------------------------------------------
 
-include ../../Makefile.local
+#
+# Compilers, etc
+#
 
-TARGET=flag-sim
+CC=
+CXX=
+MPICC=
 
-REG_LINK=-L${REG_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2
+#
+# Software locations, etc
+#
 
-CPPFLAGS=-I. -I${REG_HOME}/include
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+REG_HOME=
+VTK_HOME=

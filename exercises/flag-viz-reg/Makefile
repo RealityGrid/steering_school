@@ -28,16 +28,15 @@
 # Author: Robert Haines
 # -------------------------------------------------------------------------
 
-TARGET=flag-viz
+include ../../Makefile.local
 
-VTK_HOME=/opt/software/vtk-5.0.3/gcc-64
+TARGET=flag-viz
 
 VTK_LINK=-L${VTK_HOME}/lib -lvtkCommon -lvtkFiltering -lvtkGraphics -lvtkHybrid -lvtkImaging -lvtkIO -lvtkRendering -lvtkVolumeRendering -lvtkWidgets -lvtksys -lvtkexoIIc -lvtkftgl -lvtkDICOMParser -lvtkNetCDF
 
-REG_LINK=-L${REG_STEER_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2 -lm
+REG_LINK=-L${REG_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2 -lm
 
-CXX=g++
-CPPFLAGS=-I. -I${VTK_HOME}/include/vtk-5.0 -I${REG_STEER_HOME}/include
+CPPFLAGS=-I. -I${VTK_HOME}/include/vtk-5.0 -I${REG_HOME}/include
 CXXFLAGS=-Wno-deprecated -O3 -pipe
 LDFLAGS=${VTK_LINK} ${REG_LINK}
 

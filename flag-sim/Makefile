@@ -28,12 +28,13 @@
 # Author: Robert Haines
 # -------------------------------------------------------------------------
 
+include ../Makefile.local
+
 TARGET=flag-sim
 
-REG_LINK=-L${REG_STEER_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2
+REG_LINK=-L${REG_HOME}/lib64 -Wl,-Bstatic -lReG_Steer -lReG_Steer_Utils -lReG_Steer_SOAP -Wl,-Bdynamic -lxml2
 
-CC=gcc
-CPPFLAGS=-I. -I${REG_STEER_HOME}/include
+CPPFLAGS=-I. -I${REG_HOME}/include
 CCFLAGS=-O3 -pipe
 LDFLAGS=${REG_LINK} -lm
 

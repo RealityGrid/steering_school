@@ -14,7 +14,7 @@ Exercises
 ---------
 
 1) flag-sim - Instrument a flag simulation code with steered variables
-   and outputdata to an instrumented visualization program.
+   and output data to an instrumented visualization program.
 
 2) flag-viz-reg - Instrument a visualization code to receive data from
    flag-sim.

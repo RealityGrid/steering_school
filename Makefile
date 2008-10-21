@@ -28,6 +28,8 @@
 # Author: Robert Haines
 # -------------------------------------------------------------------------
 
+include Makefile.local
+
 TARGETDIR=RealityGrid-tutorial
 
 all: tar clean
@@ -51,12 +53,14 @@ tar: mk-flag-sim mk-flag-viz-files mk-flag-viz-reg mk-mpi
 	mv flag-viz-files/flag-viz ${TARGETDIR}/bin/flag-viz-files
 	mv flag-viz-reg/flag-viz ${TARGETDIR}/bin/flag-viz-reg
 	mv mpi/mpi_simulation ${TARGETDIR}/bin/mpi-simulation
+	cp Makefile.local ${TARGETDIR}/Makefile.local
+	cp Readme.txt ${TARGETDIR}/Readme.txt
 	cp flag-viz-files/reg-flag.png ${TARGETDIR}/bin/reg-flag.png
 	cp -a flag-sim ${TARGETDIR}/solutions/flag-sim
 	cp -a flag-viz-reg ${TARGETDIR}/solutions/flag-viz-reg
 	cp -a mpi ${TARGETDIR}/solutions/mpi-simulation
 	cp -a exercises ${TARGETDIR}/exercises
-	cp Readme.txt ${TARGETDIR}/Readme.txt
+	ln -s ../Makefile.local ${TARGETDIR}/solutions/Makefile.local
 	tar czf ${TARGETDIR}.tgz ${TARGETDIR}
 
 clean:
