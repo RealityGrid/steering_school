@@ -53,3 +53,8 @@ target_link_libraries(flag-viz
   -lvtkIO
   -lvtkRendering
 )
+
+install(TARGETS
+  flag-viz
+  RUNTIME DESTINATION bin
+)

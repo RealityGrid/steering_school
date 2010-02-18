@@ -44,27 +44,23 @@
 #
 #  Author: Robert Haines
 
-include_directories(${MPIC_INCLUDE_PATH})
-add_executable(mpi-sim mpi_simulation.c)
-target_link_libraries(mpi-sim
-  ${MPIC_LIBRARY}
-  ${MPIC_EXTRA_LIBRARY}
-  ${REG_LINK_LIBRARIES}
-  ${REG_EXTERNAL_LIBS}
-)
+#
+# Compilers, etc
+#
 
-# Set MPI flags for the source file and target while building
-set(MPIC_COMPILE_FLAGS "-std=c99 ${MPIC_COMPILE_FLAGS}")
-set_source_files_properties(
-  mpi_simulation.c PROPERTIES COMPILE_FLAGS ${MPIC_COMPILE_FLAGS}
-)
-if(MPIC_LINK_FLAGS)
-  set_target_properties(
-    mpi-sim PROPERTIES LINK_FLAGS ${MPIC_LINK_FLAGS}
-  )
-endif(MPIC_LINK_FLAGS)
+CC=@CMAKE_C_COMPILER@
+CXX=@CMAKE_CXX_COMPILER@
+MPICC=@MPIC_COMPILER@
 
-install(TARGETS
-  mpi-sim
-  RUNTIME DESTINATION bin
-)
+#
+# Software locations, etc
+#
+
+REG_HOME=@RealityGrid_DIR@
+REG_CONFIG=@RealityGrid_BIN_DIR@/reg-config
+REG_INC=`${REG_CONFIG} -f`
+REG_LINK=`${REG_CONFIG} -l`
+
+VTK_HOME=@VTK_DIR@
+VTK_INC=-I@VTK_FIRST_INCLUDE_DIR@
+VTK_LINK=-L@VTK_LIBRARY_DIRS@

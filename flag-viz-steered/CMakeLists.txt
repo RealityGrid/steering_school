@@ -55,3 +55,8 @@ target_link_libraries(flag-viz-steered
   -lvtkIO
   -lvtkRendering
 )
+
+install(TARGETS
+  flag-viz-steered
+  RUNTIME DESTINATION bin
+)

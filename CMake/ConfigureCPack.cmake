@@ -44,27 +44,20 @@
 #
 #  Author: Robert Haines
 
-include_directories(${MPIC_INCLUDE_PATH})
-add_executable(mpi-sim mpi_simulation.c)
-target_link_libraries(mpi-sim
-  ${MPIC_LIBRARY}
-  ${MPIC_EXTRA_LIBRARY}
-  ${REG_LINK_LIBRARIES}
-  ${REG_EXTERNAL_LIBS}
+set(CPACK_PACKAGE_NAME "RCS-Steering-School")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "The RCS Steering School Tutorial Exercises")
+set(CPACK_PACKAGE_VENDOR "Research Computing Services, University of Manchester, UK")
+set(CPACK_PACKAGE_VERSION
+  ${REG_LIB_VERSION_MAJ}.${REG_LIB_VERSION_MIN}.${REG_LIB_VERSION_PAT}
 )
+set(CPACK_PACKAGE_VERSION_MAJOR ${REG_LIB_VERSION_MAJ})
+set(CPACK_PACKAGE_VERSION_MINOR ${REG_LIB_VERSION_MIN})
+set(CPACK_PACKAGE_VERSION_PATCH ${REG_LIB_VERSION_PAT})
+set(CPACK_PACKAGE_FILE_NAME "RCS-Steering-School-${CPACK_PACKAGE_VERSION}-${REG_SCHOOL_BUILD_NAME}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "steering-school")
 
-# Set MPI flags for the source file and target while building
-set(MPIC_COMPILE_FLAGS "-std=c99 ${MPIC_COMPILE_FLAGS}")
-set_source_files_properties(
-  mpi_simulation.c PROPERTIES COMPILE_FLAGS ${MPIC_COMPILE_FLAGS}
-)
-if(MPIC_LINK_FLAGS)
-  set_target_properties(
-    mpi-sim PROPERTIES LINK_FLAGS ${MPIC_LINK_FLAGS}
-  )
-endif(MPIC_LINK_FLAGS)
-
-install(TARGETS
-  mpi-sim
-  RUNTIME DESTINATION bin
-)
+if(WIN32 AND NOT CYGWIN)
+  set(CPACK_GENERATOR "ZIP")
+else(WIN32 AND NOT CYGWIN)
+  set(CPACK_GENERATOR "TGZ")
+endif(WIN32 AND NOT CYGWIN)

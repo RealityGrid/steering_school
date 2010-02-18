@@ -55,3 +55,9 @@ set_target_properties(flag-sim
   PROPERTIES COMPILE_FLAGS -DNO_STEERING
 )
 target_link_libraries(flag-sim -lm)
+
+install(TARGETS
+  flag-sim-steered
+  flag-sim
+  RUNTIME DESTINATION bin
+)

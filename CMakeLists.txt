@@ -50,6 +50,11 @@ project(RCS_SCHOOL)
 cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake")
 
+# get the hostname of this machine
+site_name(REG_SCHOOL_BUILD_NAME)
+string(REGEX REPLACE "\\..+$" "" REG_SCHOOL_BUILD_NAME ${REG_SCHOOL_BUILD_NAME})
+mark_as_advanced(REG_SCHOOL_BUILD_NAME)
+
 # set output directories.
 if(NOT EXECUTABLE_OUTPUT_PATH)
   set(EXECUTABLE_OUTPUT_PATH ${RCS_SCHOOL_BINARY_DIR}/bin CACHE INTERNAL
@@ -74,3 +79,30 @@ if(REG_SCHOOL_BUILD_MPI)
   find_package(MPIC REQUIRED)
   add_subdirectory(mpi)
 endif(REG_SCHOOL_BUILD_MPI)
+
+# configure Makefile.local
+list(GET VTK_INCLUDE_DIRS 0 VTK_FIRST_INCLUDE_DIR)
+configure_file(
+  "${PROJECT_SOURCE_DIR}/Makefile.local.in"
+  "${PROJECT_BINARY_DIR}/Makefile.local"
+  @ONLY
+)
+
+# install rules
+install(FILES
+  "${PROJECT_SOURCE_DIR}/Readme.txt"
+  "${PROJECT_SOURCE_DIR}/Licence.txt"
+  DESTINATION .
+)
+
+# work out which exercises need to be packaged
+set(EX_DIRS exercises/flag-sim exercises/flag-viz-steered)
+if(REG_SCHOOL_BUILD_MPI)
+  set(EX_DIRS ${EX_DIRS} exercises/mpi)
+endif(REG_SCHOOL_BUILD_MPI)
+install(DIRECTORY ${EX_DIRS} DESTINATION exercises USE_SOURCE_PERMISSIONS)
+install(FILES "${PROJECT_BINARY_DIR}/Makefile.local" DESTINATION exercises)
+
+# packaging rules
+include(ConfigureCPack)
+include(CPack)

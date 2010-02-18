@@ -44,27 +44,23 @@
 #
 #  Author: Robert Haines
 
-include_directories(${MPIC_INCLUDE_PATH})
-add_executable(mpi-sim mpi_simulation.c)
-target_link_libraries(mpi-sim
-  ${MPIC_LIBRARY}
-  ${MPIC_EXTRA_LIBRARY}
-  ${REG_LINK_LIBRARIES}
-  ${REG_EXTERNAL_LIBS}
-)
+include ../Makefile.local
 
-# Set MPI flags for the source file and target while building
-set(MPIC_COMPILE_FLAGS "-std=c99 ${MPIC_COMPILE_FLAGS}")
-set_source_files_properties(
-  mpi_simulation.c PROPERTIES COMPILE_FLAGS ${MPIC_COMPILE_FLAGS}
-)
-if(MPIC_LINK_FLAGS)
-  set_target_properties(
-    mpi-sim PROPERTIES LINK_FLAGS ${MPIC_LINK_FLAGS}
-  )
-endif(MPIC_LINK_FLAGS)
+TARGET=flag-viz
 
-install(TARGETS
-  mpi-sim
-  RUNTIME DESTINATION bin
-)
+VTK_LINK += -lvtkCommon -lvtkFiltering -lvtkGraphics -lvtkHybrid -lvtkImaging -lvtkIO -lvtkRendering -lvtkVolumeRendering -lvtkWidgets -lvtksys -lvtkexoIIc -lvtkftgl -lvtkDICOMParser -lvtkNetCDF
+
+CPPFLAGS=-I. ${VTK_INC} ${REG_INC}
+CXXFLAGS=-Wno-deprecated -O3 -pipe
+LDFLAGS=${VTK_LINK} ${REG_LINK}
+
+# build the objects and link into the executable...
+
+${TARGET}: flag-viz.cpp
+	${CXX} -o ${TARGET} flag-viz.cpp ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS}
+
+distclean:	clean
+	rm -f *~
+
+clean:
+	rm -f ${TARGET} *.o
