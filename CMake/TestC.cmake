@@ -44,76 +44,17 @@
 #
 #  Author: Robert Haines
 
-project(RCS_SCHOOL)
+include(CheckIncludeFiles)
+include(CheckSymbolExists)
 
-# cmake setup boiler-plate
-cmake_minimum_required(VERSION 2.6)
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake")
+# check where malloc and friends are defined
+CHECK_SYMBOL_EXISTS(malloc stdlib.h MALLOC_IN_STDLIB)
+if(NOT MALLOC_IN_STDLIB)
+  CHECK_INCLUDE_FILES(malloc.h REG_NEED_MALLOC_H)
+endif(NOT MALLOC_IN_STDLIB)
 
-# get the hostname of this machine
-site_name(REG_SCHOOL_BUILD_NAME)
-string(REGEX REPLACE "\\..+$" "" REG_SCHOOL_BUILD_NAME ${REG_SCHOOL_BUILD_NAME})
-mark_as_advanced(REG_SCHOOL_BUILD_NAME)
-
-# set output directories.
-if(NOT EXECUTABLE_OUTPUT_PATH)
-  set(EXECUTABLE_OUTPUT_PATH ${RCS_SCHOOL_BINARY_DIR}/bin CACHE INTERNAL
-    "Single output directory for building all executables.")
-endif(NOT EXECUTABLE_OUTPUT_PATH)
-
-# need ReG
-find_package(RealityGrid REQUIRED)
-include(${RealityGrid_USE_FILE})
-
-# need VTK
-find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
-
-# test C/C++ environment
-include(TestC)
-
-# build MPI example?
-option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" ON)
-
-# configure header
-configure_file(
-  "${PROJECT_SOURCE_DIR}/config.h.in"
-  "${PROJECT_BINARY_DIR}/config.h"
-  @ONLY
+# test the scandir method signature
+try_compile(REG_NEED_CONST_DIRENT
+  ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/dirent
+  ${PROJECT_SOURCE_DIR}/CMake/test_dirent.cpp
 )
-include_directories(${PROJECT_BINARY_DIR})
-
-add_subdirectory(flag-sim)
-add_subdirectory(flag-viz-files)
-add_subdirectory(flag-viz-steered)
-if(REG_SCHOOL_BUILD_MPI)
-  find_package(MPIC REQUIRED)
-  add_subdirectory(mpi)
-endif(REG_SCHOOL_BUILD_MPI)
-
-# configure Makefile.local
-list(GET VTK_INCLUDE_DIRS 0 VTK_FIRST_INCLUDE_DIR)
-configure_file(
-  "${PROJECT_SOURCE_DIR}/Makefile.local.in"
-  "${PROJECT_BINARY_DIR}/Makefile.local"
-  @ONLY
-)
-
-# install rules
-install(FILES
-  "${PROJECT_SOURCE_DIR}/Readme.txt"
-  "${PROJECT_SOURCE_DIR}/Licence.txt"
-  DESTINATION .
-)
-
-# work out which exercises need to be packaged
-set(EX_DIRS exercises/flag-sim exercises/flag-viz-steered)
-if(REG_SCHOOL_BUILD_MPI)
-  set(EX_DIRS ${EX_DIRS} exercises/mpi)
-endif(REG_SCHOOL_BUILD_MPI)
-install(DIRECTORY ${EX_DIRS} DESTINATION exercises USE_SOURCE_PERMISSIONS)
-install(FILES "${PROJECT_BINARY_DIR}/Makefile.local" DESTINATION exercises)
-
-# packaging rules
-include(ConfigureCPack)
-include(CPack)

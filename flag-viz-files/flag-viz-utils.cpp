@@ -1,42 +1,87 @@
-/*-------------------------------------------------------------------------
-  (C) Copyright 2007, 2008, University of Manchester, United Kingdom,
-  all rights reserved.
+/*
+  The RCS Steering School Tutorial Exercises
 
-  This software was developed by the RealityGrid project
-  (http://www.realitygrid.org), funded by the EPSRC under grants
-  GR/R67699/01 and GR/R67699/02.
+  Copyright (c) 2007-2010, University of Manchester, United Kingdom.
+  All rights reserved.
+
+  This software is produced by Research Computing Services, University
+  of Manchester as part of the RealityGrid project and associated
+  follow on projects, funded by the EPSRC under grants GR/R67699/01,
+  GR/R67699/02, GR/T27488/01, EP/C536452/1, EP/D500028/1,
+  EP/F00561X/1.
 
   LICENCE TERMS
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions
   are met:
-  1. Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-  2. Redistributions in binary form must reproduce the above copyright
-     notice, this list of conditions and the following disclaimer in the
-     documentation and/or other materials provided with the distribution.
 
-  THIS MATERIAL IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    * Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of The University of Manchester nor the names
+      of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written
+      permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-  A PARTICULAR PURPOSE ARE DISCLAIMED. THE ENTIRE RISK AS TO THE QUALITY
-  AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE
-  DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
-  CORRECTION.
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
 
   Author: Robert Haines
----------------------------------------------------------------------------*/
+ */
+
+#include "config.h"
 
 #include <cstring>
-#include <malloc.h>
+#include <sys/types.h>
 #include <dirent.h>
-#include <sys/dir.h>
+
+#if REG_NEED_MALLOC_H
+#include <malloc.h>
+#else
+#include <cstdlib>
+#endif
 
 #include "flag-viz.h"
 
-int filter_nodes(const dirent*);
-int filter_verts(const dirent*);
+// this method is used to filter out nodedata files in scandir.
+#if REG_NEED_CONST_DIRENT
+int filter_nodes(const dirent* entry) {
+#else
+int filter_nodes(dirent* entry) {
+#endif
+  if(strstr(entry->d_name, "nodedata") == NULL)
+    return 0;
+  else
+    return 1;
+}
+
+// this method is used to filter out vertices files in scandir.
+#if REG_NEED_CONST_DIRENT
+int filter_verts(const dirent* entry) {
+#else
+int filter_verts(dirent* entry) {
+#endif
+  if(strstr(entry->d_name, "vertices") == NULL)
+    return 0;
+  else
+    return 1;
+}
 
 // read the contents of a directory and return lists of interesting files.
 int read_directory(const char* dir, CallbackData* data) {
@@ -46,7 +91,7 @@ int read_directory(const char* dir, CallbackData* data) {
   dirent** n_files;
   dirent** v_files;
   char* canon_dir;
-  
+
   // scan the directory for vertices and nodedata files.
   n_count = scandir(dir, &n_files, filter_nodes, alphasort);
   v_count = scandir(dir, &v_files, filter_verts, alphasort);
@@ -106,20 +151,4 @@ int read_directory(const char* dir, CallbackData* data) {
   data->max_step = v_count - 1;
 
   return v_count;
-}
-
-// this method is used to filter out nodedata files in scandir.
-int filter_nodes(const dirent* entry) {
-  if(strstr(entry->d_name, "nodedata") == NULL)
-    return 0;
-  else
-    return 1;
-}
-
-// this method is used to filter out vertices files in scandir.
-int filter_verts(const dirent* entry) {
-  if(strstr(entry->d_name, "vertices") == NULL)
-    return 0;
-  else
-    return 1;
 }
