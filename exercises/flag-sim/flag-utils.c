@@ -1,33 +1,50 @@
-/****************************************************************************
- *  (C) Copyright 2007, 2008, University of Manchester, United Kingdom,
- *  all rights reserved.
- *
- *  This software was developed by the RealityGrid project
- *  (http://www.realitygrid.org), funded by the EPSRC under grants
- *  GR/R67699/01 and GR/R67699/02.
- *
- *  LICENCE TERMS
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions
- *  are met:
- *  1. Redistributions of source code must retain the above copyright
- *     notice, this list of conditions and the following disclaimer.
- *  2. Redistributions in binary form must reproduce the above copyright
- *     notice, this list of conditions and the following disclaimer in the
- *     documentation and/or other materials provided with the distribution.
- *
- *  THIS MATERIAL IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- *  A PARTICULAR PURPOSE ARE DISCLAIMED. THE ENTIRE RISK AS TO THE QUALITY
- *  AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE
- *  DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR
- *  CORRECTION.
- *
- *  Authors.......: Joanna Leng
- *                  Robert Haines
- ****************************************************************************/
+/*
+  The RCS Steering School Tutorial Exercises
+
+  Copyright (c) 2007-2010, University of Manchester, United Kingdom.
+  All rights reserved.
+
+  This software is produced by Research Computing Services, University
+  of Manchester as part of the RealityGrid project and associated
+  follow on projects, funded by the EPSRC under grants GR/R67699/01,
+  GR/R67699/02, GR/T27488/01, EP/C536452/1, EP/D500028/1,
+  EP/F00561X/1.
+
+  LICENCE TERMS
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+
+    * Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of The University of Manchester nor the names
+      of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written
+      permission.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+  FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+  COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+  INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+  BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+
+  Author: Robert Haines
+          Joanna Leng
+ */
 
 /***************************************************************************
  * Copyright (C) 1992, 1993
@@ -293,7 +310,7 @@ void force_horizontal(FlagInfo *f_i)
   /*veci(f_i->len1-1)  */
   for(i=0;i<f_i->len1-1;i++)
     {            /* f_i->ld = length(d)         */
-      if ((int)f_i->txyz[i] >= SQRTRES) 
+      if ((int)f_i->txyz[i] >= SQRTRES)
 	{
 	  printf("force_horizontal: (int)f_i->txyz[%d] = %d\n",i, (int)f_i->txyz[i]);
 	  f_i->txyz[i] = SQRTRES - 1;
@@ -370,7 +387,7 @@ void force_vertical (FlagInfo *f_i)
   /*veci(f_i->len1-SIZEX)  */
   for(i=0;i<f_i->len1-SIZEX;i++)
     {/* f_i->ld = sqrt(f_i->txyz)   -NOTE-  */
-      if ((int)f_i->txyz[i] >= SQRTRES) 
+      if ((int)f_i->txyz[i] >= SQRTRES)
 	{
 #ifdef DBG_MESSAGE
 	  printf("force_vertical: (int)f_i->txyz[%d] = %d\n",
@@ -419,7 +436,7 @@ void force_diagonal (FlagInfo *f_i)
   /*veci(f_i->len1-(SIZEX+1))  */
   for(i=0;i<f_i->len1-(SIZEX+1);i++)
     {            /* f_i->ld = sqrt(f_i->txyz)   -NOTE-  */
-      if ((int)f_i->txyz[i] >= SQRTRES) 
+      if ((int)f_i->txyz[i] >= SQRTRES)
 	{
 
 	  /*            printf("force_diagonal: (int)f_i->txyz[%d] = %d\n", */
@@ -485,7 +502,7 @@ void externalforces (FlagInfo *f_i)
   if (f_i->flag_release[RELEASE_TOP]==0)
     {   f_i->fxyz [       (SIZEX*(SIZEY-1))] = 0.0;
     f_i->fxyz [f_i->yoff + (SIZEX*(SIZEY-1))] = 0.0;
-    f_i->fxyz [f_i->zoff + (SIZEX*(SIZEY-1))] = 0.0; 
+    f_i->fxyz [f_i->zoff + (SIZEX*(SIZEY-1))] = 0.0;
     }
 }
 
@@ -610,7 +627,7 @@ void init_flag (FlagInfo *f_i)
       f_i->pxyz[f_i->yoff+i] = y;
       f_i->pxyz[f_i->zoff+i] = y*x*0.01/(SIZEX*SIZEY)+x*0.01/SIZEX;
 
-      if ((++xc)>=SIZEX) 
+      if ((++xc)>=SIZEX)
 	{
 	  x = 0.;
 	  xc = 0;
@@ -656,11 +673,11 @@ void createflag (FlagInfo *f_i)
 
   index = 0;
 
-  if (f_i->flag_color == COLOR_TEXTURE) 
+  if (f_i->flag_color == COLOR_TEXTURE)
     {
-      for (iy=0;  iy < SIZEY;  ++iy) 
+      for (iy=0;  iy < SIZEY;  ++iy)
 	{
-	  for (ix=0;  ix < SIZEX;  ++ix) 
+	  for (ix=0;  ix < SIZEX;  ++ix)
 	    {
 	      f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz [index];
 	      f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz [index+f_i->yoff];
@@ -680,11 +697,11 @@ void createflag (FlagInfo *f_i)
 
   index = 0;
 
-  if (f_i->flag_color == COLOR_SOLID) 
+  if (f_i->flag_color == COLOR_SOLID)
     {
-      for (iy=0;  iy < SIZEY;  ++iy) 
+      for (iy=0;  iy < SIZEY;  ++iy)
 	{
-	  for (ix=0;  ix < SIZEX;  ++ix) 
+	  for (ix=0;  ix < SIZEX;  ++ix)
 	    {
 
 	      f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz [index];
@@ -700,9 +717,9 @@ void createflag (FlagInfo *f_i)
   index = 0;
   if (f_i->flag_color == COLOR_FORCEMAG)
     {
-      for (iy=0;  iy < SIZEY;  ++iy) 
+      for (iy=0;  iy < SIZEY;  ++iy)
 	{
-	  for (ix=0;  ix < SIZEX;  ++ix) 
+	  for (ix=0;  ix < SIZEX;  ++ix)
 	    {
 
 	      intensity =(float)( f_i->fxyz[index]      * f_i->fxyz[index] +
@@ -724,9 +741,9 @@ void createflag (FlagInfo *f_i)
   /* Default; Color type is COLOR_PSEUDO.  */
   index = 0;
 
-  for (iy=0;  iy < SIZEY;  ++iy) 
+  for (iy=0;  iy < SIZEY;  ++iy)
     {
-      for (ix=0;  ix < SIZEX;  ++ix) 
+      for (ix=0;  ix < SIZEX;  ++ix)
 	{
 	  f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz [index];
 	  f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz [index+f_i->yoff];
@@ -738,7 +755,7 @@ void createflag (FlagInfo *f_i)
 	  /* previous and current position of each vertex.  For the first */
 	  /* update, set the vertex color to gray.  */
 
-	  if (f_i->traversal_counter == 0) 
+	  if (f_i->traversal_counter == 0)
 	    {
 
 	      r_data = 0.5;
@@ -839,9 +856,9 @@ void recreateflag (FlagInfo *f_i)
 
   case COLOR_SOLID:
     index = 0;
-    for (iy=0;  iy < SIZEY;  ++iy) 
+    for (iy=0;  iy < SIZEY;  ++iy)
       {
-	for (ix=0;  ix < SIZEX;  ++ix) 
+	for (ix=0;  ix < SIZEX;  ++ix)
 	  {
 	    f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
 	    f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
@@ -854,9 +871,9 @@ void recreateflag (FlagInfo *f_i)
   case COLOR_FORCEMAG:
     /* Color is flag force magnitude, unnormalized  */
     index = 0;
-    for (iy=0;  iy < SIZEY;  ++iy) 
+    for (iy=0;  iy < SIZEY;  ++iy)
       {
-	for (ix=0;  ix < SIZEX;  ++ix) 
+	for (ix=0;  ix < SIZEX;  ++ix)
 	  {
 	    intensity = (float)(f_i->fxyz[index]      * f_i->fxyz[index] +
 				f_i->fxyz[index+f_i->yoff] * f_i->fxyz[index+f_i->yoff] +
@@ -875,9 +892,9 @@ void recreateflag (FlagInfo *f_i)
     /* Default; Color type is COLOR_PSEUDO.  */
     index = 0;
 
-    for (iy=0;  iy < SIZEY;  ++iy) 
+    for (iy=0;  iy < SIZEY;  ++iy)
       {
-	for (ix=0;  ix < SIZEX;  ++ix) 
+	for (ix=0;  ix < SIZEX;  ++ix)
 	  {
 	    f_i->Vertices[3 * VINDEX(ix,iy) + 0] = (float)f_i->pxyz[index];
 	    f_i->Vertices[3 * VINDEX(ix,iy) + 1] = (float)f_i->pxyz[index+f_i->yoff];
@@ -889,7 +906,7 @@ void recreateflag (FlagInfo *f_i)
 	    /* previous and current position of each vertex.  For the first */
 	    /* update, set the vertex color to gray.  */
 
-	    if (f_i->traversal_counter == 0) 
+	    if (f_i->traversal_counter == 0)
 	      {
 
 		r_data = 0.5;
