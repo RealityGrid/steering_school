@@ -77,18 +77,18 @@ option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" ON)
 
 # configure header
 configure_file(
-  "${PROJECT_SOURCE_DIR}/config.h.in"
+  "${PROJECT_SOURCE_DIR}/examples/config.h.in"
   "${PROJECT_BINARY_DIR}/config.h"
   @ONLY
 )
 include_directories(${PROJECT_BINARY_DIR})
 
-add_subdirectory(flag-sim)
-add_subdirectory(flag-viz-files)
-add_subdirectory(flag-viz-steered)
+add_subdirectory(examples/flag-sim)
+add_subdirectory(examples/flag-viz-files)
+add_subdirectory(examples/flag-viz-steered)
 if(REG_SCHOOL_BUILD_MPI)
   find_package(MPIC REQUIRED)
-  add_subdirectory(mpi)
+  add_subdirectory(examples/mpi)
 endif(REG_SCHOOL_BUILD_MPI)
 
 # configure Makefile.local
@@ -97,6 +97,13 @@ configure_file(
   "${PROJECT_SOURCE_DIR}/Makefile.local.in"
   "${PROJECT_BINARY_DIR}/Makefile.local"
   @ONLY
+)
+
+# copy reg-flag.png to the build tree
+configure_file(
+  "${PROJECT_SOURCE_DIR}/examples/reg-flag.png"
+  "${PROJECT_BINARY_DIR}/bin/reg-flag.png"
+  COPYONLY
 )
 
 # install rules
@@ -113,6 +120,7 @@ if(REG_SCHOOL_BUILD_MPI)
 endif(REG_SCHOOL_BUILD_MPI)
 install(DIRECTORY ${EX_DIRS} DESTINATION exercises USE_SOURCE_PERMISSIONS)
 install(FILES "${PROJECT_BINARY_DIR}/Makefile.local" DESTINATION exercises)
+install(FILES "${PROJECT_SOURCE_DIR}/examples/reg-flag.png" DESTINATION bin)
 
 # packaging rules
 include(ConfigureCPack)
