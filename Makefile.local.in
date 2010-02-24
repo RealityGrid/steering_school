@@ -44,28 +44,23 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+#
+# Compilers, etc
+#
 
-TARGET=flag-sim
+CC=@CMAKE_C_COMPILER@
+CXX=@CMAKE_CXX_COMPILER@
+MPICC=@MPIC_COMPILER@
 
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
+#
+# Software locations, etc
+#
 
-# build the objects and link into the executable...
+REG_HOME=@RealityGrid_DIR@
+REG_CONFIG=@RealityGrid_BIN_DIR@/reg-config
+REG_INC=`${REG_CONFIG} -f`
+REG_LINK=`${REG_CONFIG} -l`
 
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+VTK_HOME=@VTK_DIR@
+VTK_INC=-I@VTK_FIRST_INCLUDE_DIR@
+VTK_LINK=-L@VTK_LIBRARY_DIRS@

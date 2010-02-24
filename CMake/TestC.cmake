@@ -44,28 +44,17 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+include(CheckIncludeFiles)
+include(CheckSymbolExists)
 
-TARGET=flag-sim
+# check where malloc and friends are defined
+CHECK_SYMBOL_EXISTS(malloc stdlib.h MALLOC_IN_STDLIB)
+if(NOT MALLOC_IN_STDLIB)
+  CHECK_INCLUDE_FILES(malloc.h REG_NEED_MALLOC_H)
+endif(NOT MALLOC_IN_STDLIB)
 
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+# test the scandir method signature
+try_compile(REG_NEED_CONST_DIRENT
+  ${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/dirent
+  ${PROJECT_SOURCE_DIR}/CMake/test_dirent.cpp
+)

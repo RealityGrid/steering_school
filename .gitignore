@@ -1,15 +1,2 @@
 # ignore emacs generated ~
 *~
-
-# ignore *.dat generated files
-*.dat
-
-# ignore any executables
-flag-viz-files/flag-viz
-flag-viz-reg/flag-viz
-mpi/mpi_simulation
-flag-sim/flag-sim
-
-# ignore generated distribution
-RealityGrid-tutorial
-RealityGrid-tutorial.tgz

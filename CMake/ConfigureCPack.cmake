@@ -44,28 +44,20 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+set(CPACK_PACKAGE_NAME "RCS-Steering-School")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "The RCS Steering School Tutorial Exercises")
+set(CPACK_PACKAGE_VENDOR "Research Computing Services, University of Manchester, UK")
+set(CPACK_PACKAGE_VERSION
+  ${REG_LIB_VERSION_MAJ}.${REG_LIB_VERSION_MIN}.${REG_LIB_VERSION_PAT}
+)
+set(CPACK_PACKAGE_VERSION_MAJOR ${REG_LIB_VERSION_MAJ})
+set(CPACK_PACKAGE_VERSION_MINOR ${REG_LIB_VERSION_MIN})
+set(CPACK_PACKAGE_VERSION_PATCH ${REG_LIB_VERSION_PAT})
+set(CPACK_PACKAGE_FILE_NAME "RCS-Steering-School-${CPACK_PACKAGE_VERSION}-${REG_SCHOOL_BUILD_NAME}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "steering-school")
 
-TARGET=flag-sim
-
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+if(WIN32 AND NOT CYGWIN)
+  set(CPACK_GENERATOR "ZIP")
+else(WIN32 AND NOT CYGWIN)
+  set(CPACK_GENERATOR "TGZ")
+endif(WIN32 AND NOT CYGWIN)

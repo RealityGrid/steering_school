@@ -44,28 +44,20 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+add_executable(flag-sim-steered flag-sim.c flag-utils.c)
+target_link_libraries(flag-sim-steered
+  ${REG_LINK_LIBRARIES}
+  ${REG_EXTERNAL_LIBS}
+)
 
-TARGET=flag-sim
+add_executable(flag-sim flag-sim.c flag-utils.c)
+set_target_properties(flag-sim
+  PROPERTIES COMPILE_FLAGS -DNO_STEERING
+)
+target_link_libraries(flag-sim -lm)
 
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+install(TARGETS
+  flag-sim-steered
+  flag-sim
+  RUNTIME DESTINATION bin
+)

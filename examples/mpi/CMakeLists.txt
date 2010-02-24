@@ -44,28 +44,27 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+include_directories(${MPIC_INCLUDE_PATH})
+add_executable(mpi-sim mpi_simulation.c)
+target_link_libraries(mpi-sim
+  ${MPIC_LIBRARY}
+  ${MPIC_EXTRA_LIBRARY}
+  ${REG_LINK_LIBRARIES}
+  ${REG_EXTERNAL_LIBS}
+)
 
-TARGET=flag-sim
+# Set MPI flags for the source file and target while building
+set(MPIC_COMPILE_FLAGS "-std=c99 ${MPIC_COMPILE_FLAGS}")
+set_source_files_properties(
+  mpi_simulation.c PROPERTIES COMPILE_FLAGS ${MPIC_COMPILE_FLAGS}
+)
+if(MPIC_LINK_FLAGS)
+  set_target_properties(
+    mpi-sim PROPERTIES LINK_FLAGS ${MPIC_LINK_FLAGS}
+  )
+endif(MPIC_LINK_FLAGS)
 
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+install(TARGETS
+  mpi-sim
+  RUNTIME DESTINATION bin
+)

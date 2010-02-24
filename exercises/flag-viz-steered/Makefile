@@ -46,26 +46,21 @@
 
 include ../Makefile.local
 
-TARGET=flag-sim
+TARGET=flag-viz
 
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
+VTK_LINK += -lvtkCommon -lvtkFiltering -lvtkGraphics -lvtkHybrid -lvtkImaging -lvtkIO -lvtkRendering -lvtkVolumeRendering -lvtkWidgets -lvtksys -lvtkexoIIc -lvtkftgl -lvtkDICOMParser -lvtkNetCDF
+
+CPPFLAGS=-I. ${VTK_INC} ${REG_INC}
+CXXFLAGS=-Wno-deprecated -O3 -pipe
+LDFLAGS=${VTK_LINK} ${REG_LINK}
 
 # build the objects and link into the executable...
 
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
+${TARGET}: flag-viz.cpp
+	${CXX} -o ${TARGET} flag-viz.cpp ${CPPFLAGS} ${CXXFLAGS} ${LDFLAGS}
 
 distclean:	clean
 	rm -f *~
-	rm -f *.dat
 
 clean:
 	rm -f ${TARGET} *.o

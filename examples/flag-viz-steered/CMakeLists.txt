@@ -44,28 +44,19 @@
 #
 #  Author: Robert Haines
 
-include ../Makefile.local
+add_executable(flag-viz-steered flag-viz.cpp)
+target_link_libraries(flag-viz-steered
+  ${REG_LINK_LIBRARIES}
+  ${REG_EXTERNAL_LIBS}
+  -lvtkCommon
+  -lvtkFiltering
+  -lvtkGraphics
+  -lvtkImaging
+  -lvtkIO
+  -lvtkRendering
+)
 
-TARGET=flag-sim
-
-CPPFLAGS=-I. ${REG_INC}
-CCFLAGS=-O3 -pipe
-LDFLAGS=${REG_LINK} -lm
-
-# build the objects and link into the executable...
-
-${TARGET}: flag-sim.c flag-utils.c
-	${CC} -o ${TARGET} flag-sim.c flag-utils.c ${CPPFLAGS} ${CCFLAGS} ${LDFLAGS}
-
-no-steering:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DNO_STEERING" REG_LINK=""
-
-debug:
-	${MAKE} CPPFLAGS="${CPPFLAGS} -DDBG_MESSAGE"
-
-distclean:	clean
-	rm -f *~
-	rm -f *.dat
-
-clean:
-	rm -f ${TARGET} *.o
+install(TARGETS
+  flag-viz-steered
+  RUNTIME DESTINATION bin
+)
