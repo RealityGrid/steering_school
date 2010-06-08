@@ -73,7 +73,7 @@ include(${VTK_USE_FILE})
 include(TestC)
 
 # build MPI example?
-option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" ON)
+option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" OFF)
 
 # configure header
 configure_file(
