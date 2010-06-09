@@ -83,6 +83,12 @@ configure_file(
 )
 include_directories(${PROJECT_BINARY_DIR})
 
+# set up the RealityGrid library link line
+#
+# if the Steering Library uses modules, this macro
+# does "the right thing"
+reg_link_modules()
+
 add_subdirectory(examples/flag-sim)
 add_subdirectory(examples/flag-viz-files)
 add_subdirectory(examples/flag-viz-steered)
