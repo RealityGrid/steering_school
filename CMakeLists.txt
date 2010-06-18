@@ -73,7 +73,7 @@ include(${VTK_USE_FILE})
 include(TestC)
 
 # build MPI example?
-option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" ON)
+option(REG_SCHOOL_BUILD_MPI "Build the MPI example?" OFF)
 
 # configure header
 configure_file(
@@ -82,6 +82,12 @@ configure_file(
   @ONLY
 )
 include_directories(${PROJECT_BINARY_DIR})
+
+# set up the RealityGrid library link line
+#
+# if the Steering Library uses modules, this macro
+# does "the right thing"
+reg_link_modules()
 
 add_subdirectory(examples/flag-sim)
 add_subdirectory(examples/flag-viz-files)

@@ -16,11 +16,34 @@ If you have this file then you still need to build the distribution!
 Move to a new, clean directory and run
 $ ccmake <path_back_to_this_directory>
 
-Edit the options as you see fit. Most commonly you will just leave
-them alone. Then run make:
+Edit the options (see below) as you see fit. Most commonly you will
+just leave them alone. Then run make:
+
 $ make package
 
 If you satisfy the dependencies you should end up with a tarball that
 you can distribute to students. It will be localized for the
 environment that it is built on so do build on the machine that the
 students will be using.
+
+----------------------------------------------------------------------
+
+The Build Options.
+
+Some of these options will only be visible in "advanced mode".
+
+REG_SCHOOL_BUILD_MPI - default OFF
+
+Build the MPI example?
+
+REG_USE_MODULE_Samples - default sockets
+
+Choose the transport over which sample data is moved. Current choices
+are sockets, files or proxy - Only available if the Steering Library
+has been built as a modular library.
+
+REG_USE_MODULE_Steering - default sockets
+
+Choose the transport which is used to pass steering messages. Current
+choices are sockets, wsrf or files - Only available if the Steering
+Library has been built as a modular library.
